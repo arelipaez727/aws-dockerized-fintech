@@ -20,5 +20,10 @@ COPY --from=builder /app/target/*.jar app.jar
 # Documentamos el puerto (el enunciado pide el 8080)
 EXPOSE 8080
 
-# Botón de encendido (PREGUNTAR AL GRUPO SOBRE USAR ENTRYPOINT)
-CMD ["java", "-jar", "app.jar"]      
+# Creamos un grupo y un usuario raso sin privilegios (Estándar de seguridad OWASP)
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Le ordenamos a Docker que deje de ser administrador y use este usuario inofensivo
+USER appuser
+
+# El botón de encendido irrompible
+ENTRYPOINT ["java", "-jar", "app.jar"]    
