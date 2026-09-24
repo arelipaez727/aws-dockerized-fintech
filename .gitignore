@@ -1,0 +1,16 @@
+node_modules/
+dist/
+venv/
+__pycache__/
+target/
+bin/
+obj/
+db/data/
+.env
+.env.*
+!env.example
+.venv/
+certs/
+*.pem
+*.key
+*.crt

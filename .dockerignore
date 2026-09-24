@@ -1,0 +1,16 @@
+.git
+**/.env
+**/.env.*
+**/node_modules
+**/venv
+**/.venv
+**/__pycache__
+**/target
+**/bin
+**/obj
+**/dist
+db/data
+certs
+**/*.pem
+**/*.key
+**/*.crt
