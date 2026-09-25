@@ -1,0 +1,132 @@
+name: fintech-nova
+
+services:
+  db:
+    image: fintech-nova-db:1.0.0
+    env_file:
+      - path: ./db/.env
+        format: raw
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app_net
+    restart: always
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 768M
+
+  api-clientes:
+    image: fintech-nova-api-clientes:1.0.0
+    env_file:
+      - path: ./api-clientes/.env
+        format: raw
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+
+  api-pagos:
+    image: fintech-nova-api-pagos:1.0.0
+    env_file:
+      - path: ./api-pagos/.env
+        format: raw
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.30"
+          memory: 256M
+
+  api-facturas:
+    image: fintech-nova-api-facturas:1.0.1
+    env_file:
+      - path: ./api-facturas/.env
+        format: raw
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60.0"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+
+  api-transacciones:
+    image: fintech-nova-api-transacciones:1.0.0
+    env_file:
+      - path: ./api-transacciones/.env
+        format: raw
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+
+  api-tarjetas:
+    image: fintech-nova-api-tarjetas:1.0.0
+    env_file:
+      - path: ./api-tarjetas/.env
+        format: raw
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.35"
+          memory: 384M
+
+  web:
+    image: fintech-nova-web:1.0.0
+    ports:
+      - "127.0.0.1:18444:8443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    networks:
+      - app_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+networks:
+  app_net:
+
+volumes:
+  db_data:
