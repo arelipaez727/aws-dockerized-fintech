@@ -125,6 +125,24 @@ services:
           cpus: "0.25"
           memory: 128M
 
+  web2:
+    build:
+      context: ./web2
+      dockerfile: Dockerfile
+    image: octaviobenjamin/web2:1.0.0
+    container_name: web2
+    env_file:
+      - path: ./.env
+        format: raw
+    networks:
+      - app_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.20"
+          memory: 64M
+
 networks:
   app_net:
 

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaOps Monitor - Estado de Servicios</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Configuración dinámica inyectada desde variables de entorno (.env) en el arranque -->
+    <script src="/web2/config.js"></script>
+    <style>
+        :root {
+            --bg-base: #0b0f19;
+            --bg-card: #111827;
+            --bg-card-hover: #162032;
+            --border-color: #1f293d;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent-green: #10b981;
+            --accent-green-bg: rgba(16, 185, 129, 0.12);
+            --accent-red: #ef4444;
+            --accent-red-bg: rgba(239, 68, 68, 0.15);
+            --accent-yellow: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .refresh-btn {
+            background-color: #1f2937;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background-color: #374151;
+            border-color: #4b5563;
+        }
+
+        /* Global Alert Banner (Uptime Kuma Style) */
+        .global-alert {
+            display: none;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-weight: 600;
+            animation: pulse-border 2s infinite;
+        }
+
+        .global-alert.down {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--accent-red-bg);
+            border: 1px solid var(--accent-red);
+            color: #fca5a5;
+        }
+
+        .global-alert.all-ok {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--accent-green-bg);
+            border: 1px solid var(--accent-green);
+            color: #6ee7b7;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+        }
+
+        /* Summary Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Services Grid */
+        .services-section h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .services-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .service-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .service-card:hover {
+            border-color: #374151;
+            background-color: var(--bg-card-hover);
+        }
+
+        .service-card.status-down {
+            border-left: 5px solid var(--accent-red);
+        }
+
+        .service-card.status-up {
+            border-left: 5px solid var(--accent-green);
+        }
+
+        .service-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 250px;
+        }
+
+        .service-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-color: #1f293d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .service-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .service-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .tech-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background-color: #1e293b;
+            color: #93c5fd;
+            border: 1px solid #2e3d5b;
+            display: inline-block;
+            margin-left: 6px;
+        }
+
+        /* Ping bars (Heartbeats) */
+        .heartbeats {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .beat {
+            width: 7px;
+            height: 24px;
+            border-radius: 3px;
+            background-color: #243048;
+            transition: all 0.3s ease;
+        }
+
+        .beat.up { background-color: var(--accent-green); }
+        .beat.down { background-color: var(--accent-red); }
+
+        /* Meta metrics */
+        .service-metrics {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .metric {
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .metric-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .status-badge.up {
+            background-color: var(--accent-green-bg);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+
+        .status-badge.down {
+            background-color: var(--accent-red-bg);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .status-badge.loading {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <div class="brand-icon">⚡</div>
+            <div>
+                <h1>NovaOps Monitor</h1>
+                <div class="brand-subtitle">FinTech Nova • Panel de Disponibilidad de Microservicios (Frontend #2)</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="refresh-btn" id="manual-refresh" onclick="checkAllEndpoints()">
+                <span>🔄</span> Verificar Ahora
+            </button>
+        </div>
+    </header>
+
+    <!-- Global Alert (Uptime Kuma Style) -->
+    <div id="global-alert" class="global-alert all-ok">
+        <span id="global-alert-text">🟢 Todos los sistemas funcionando con normalidad</span>
+        <span id="countdown" style="font-size: 0.8rem; opacity: 0.8;">Próximo sondeo en 10s</span>
+    </div>
+
+    <!-- Stats summary -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Estado General</div>
+            <div class="stat-value" id="general-status" style="color: var(--accent-green)">100%</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Servicios Operativos</div>
+            <div class="stat-value" id="up-count">6 / 6</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Latencia Promedio</div>
+            <div class="stat-value" id="avg-latency">-- ms</div>
+        </div>
+    </div>
+
+    <!-- Services list -->
+    <div class="services-section">
+        <h2>Microservicios Monitoreados (Vía HTTPS Proxy)</h2>
+        <div class="services-list" id="services-list">
+            <!-- Renders via JS -->
+        </div>
+    </div>
+
+    <footer>
+        Microservicio <code>web2</code> • Desplegado en Docker NGINX • Trabajo Práctico DevOps 2026 - Grupo 10
+    </footer>
+</div>
+
+<script>
+    // Los endpoints NO se encuentran hardcodeados en el código fuente.
+    let rawServices = (window.ENV_CONFIG && window.ENV_CONFIG.SERVICES) ? window.ENV_CONFIG.SERVICES : null;
+    if (typeof rawServices === 'string') {
+        try { rawServices = JSON.parse(rawServices); } catch (e) { console.error('Error parseando SERVICES_CONFIG:', e); }
+    }
+    const SERVICES = Array.isArray(rawServices)
+        ? rawServices.map(s => ({ ...s, history: [] }))
+        : [];
+    console.log('NovaOps Monitor - Servicios cargados:', SERVICES);
+
+    let countdownSeconds = 10;
+    let timerInterval = null;
+
+    function renderInitialCards() {
+        const container = document.getElementById('services-list');
+        if (SERVICES.length === 0) {
+            container.innerHTML = `
+                <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--accent-red); text-align: center; color: #fca5a5;">
+                    ⚠️ <strong>Configuración no encontrada:</strong> No se han detectado endpoints en las variables de entorno (.env). Verifique la inyección de <code>web2/.env</code>.
+                </div>
+            `;
+            return;
+        }
+        container.innerHTML = SERVICES.map(s => `
+            <div class="service-card" id="card-${s.id}">
+                <div class="service-info">
+                    <div class="service-avatar">${s.icon}</div>
+                    <div>
+                        <div class="service-title">
+                            ${s.name}
+                            <span class="tech-badge">${s.lang}</span>
+                        </div>
+                        <div class="service-path">${s.path}</div>
+                    </div>
+                </div>
+
+                <div class="heartbeats" id="beats-${s.id}">
+                    ${Array(12).fill('<div class="beat"></div>').join('')}
+                </div>
+
+                <div class="service-metrics">
+                    <div class="metric">
+                        <div class="metric-label">Latencia</div>
+                        <div class="metric-value" id="latency-${s.id}">-- ms</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">HTTP</div>
+                        <div class="metric-value" id="code-${s.id}">--</div>
+                    </div>
+                    <div class="status-badge loading" id="badge-${s.id}">
+                        <span class="dot"></span>
+                        <span class="badge-text">SONDEANDO</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function checkService(s) {
+        const startTime = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+
+        try {
+            const response = await fetch(s.path, {
+                method: 'GET',
+                signal: controller.signal,
+                cache: 'no-cache'
+            });
+            clearTimeout(timeoutId);
+            const latency = Math.round(performance.now() - startTime);
+            const isUp = response.status >= 200 && response.status < 400;
+
+            s.history.push({ up: isUp, latency, code: response.status });
+            if (s.history.length > 12) s.history.shift();
+
+            updateServiceUI(s, isUp, latency, response.status);
+            return { isUp, latency };
+        } catch (err) {
+            clearTimeout(timeoutId);
+            const latency = Math.round(performance.now() - startTime);
+            s.history.push({ up: false, latency, code: 'ERR' });
+            if (s.history.length > 12) s.history.shift();
+
+            updateServiceUI(s, false, latency, 'ERR / TIMEOUT');
+            return { isUp: false, latency };
+        }
+    }
+
+    function updateServiceUI(s, isUp, latency, code) {
+        const card = document.getElementById(`card-${s.id}`);
+        const badge = document.getElementById(`badge-${s.id}`);
+        const latencyEl = document.getElementById(`latency-${s.id}`);
+        const codeEl = document.getElementById(`code-${s.id}`);
+        const beatsEl = document.getElementById(`beats-${s.id}`);
+
+        card.className = `service-card ${isUp ? 'status-up' : 'status-down'}`;
+        badge.className = `status-badge ${isUp ? 'up' : 'down'}`;
+        badge.innerHTML = `<span class="dot"></span><span class="badge-text">${isUp ? 'OPERATIVO' : 'CAÍDO'}</span>`;
+        
+        latencyEl.textContent = `${latency} ms`;
+        latencyEl.style.color = latency > 800 ? 'var(--accent-yellow)' : 'var(--text-main)';
+
+        codeEl.textContent = code;
+        codeEl.style.color = isUp ? 'var(--accent-green)' : 'var(--accent-red)';
+
+        // Render heartbeat bars
+        const beatsHtml = Array(12).fill(0).map((_, i) => {
+            const histItem = s.history[i];
+            if (!histItem) return '<div class="beat"></div>';
+            return `<div class="beat ${histItem.up ? 'up' : 'down'}" title="${histItem.latency}ms - HTTP ${histItem.code}"></div>`;
+        }).join('');
+        beatsEl.innerHTML = beatsHtml;
+    }
+
+    async function checkAllEndpoints() {
+        const results = await Promise.all(SERVICES.map(s => checkService(s)));
+
+        let upCount = 0;
+        let totalLatency = 0;
+        const downServices = [];
+
+        results.forEach((r, idx) => {
+            if (r.isUp) {
+                upCount++;
+                totalLatency += r.latency;
+            } else {
+                downServices.push(SERVICES[idx].name);
+            }
+        });
+
+        // Global Alert Banner Update
+        const alertBanner = document.getElementById('global-alert');
+        const alertText = document.getElementById('global-alert-text');
+        const generalStatus = document.getElementById('general-status');
+        const upCountEl = document.getElementById('up-count');
+        const avgLatencyEl = document.getElementById('avg-latency');
+
+        upCountEl.textContent = `${upCount} / ${SERVICES.length}`;
+        const pct = Math.round((upCount / SERVICES.length) * 100);
+        generalStatus.textContent = `${pct}%`;
+        generalStatus.style.color = pct === 100 ? 'var(--accent-green)' : (pct >= 70 ? 'var(--accent-yellow)' : 'var(--accent-red)');
+
+        if (upCount > 0) {
+            avgLatencyEl.textContent = `${Math.round(totalLatency / upCount)} ms`;
+        } else {
+            avgLatencyEl.textContent = '-- ms';
+        }
+
+        if (downServices.length === 0) {
+            alertBanner.className = 'global-alert all-ok';
+            alertText.innerHTML = '🟢 Todos los microservicios están 100% operativos';
+        } else {
+            alertBanner.className = 'global-alert down';
+            alertText.innerHTML = `🚨 ALERTA: ${downServices.length} servicio(s) caído(s): <strong>${downServices.join(', ')}</strong>`;
+        }
+
+        countdownSeconds = 10;
+    }
+
+    // Auto-polling cycle
+    renderInitialCards();
+    checkAllEndpoints();
+
+    setInterval(() => {
+        countdownSeconds--;
+        const countdownEl = document.getElementById('countdown');
+        if (countdownEl) {
+            countdownEl.textContent = `Próximo sondeo en ${countdownSeconds}s`;
+        }
+        if (countdownSeconds <= 0) {
+            checkAllEndpoints();
+        }
+    }, 1000);
+</script>
+
+</body>
+</html>

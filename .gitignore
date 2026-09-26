@@ -1,6 +1,7 @@
 node_modules/
 dist/
 venv/
+.venv/
 __pycache__/
 target/
 bin/
@@ -9,8 +10,12 @@ db/data/
 .env
 .env.*
 !env.example
-.venv/
+!*.example
+!.env.example
 certs/
 *.pem
 *.key
 *.crt
+*.cer
+scripts.sh
+test.sh
