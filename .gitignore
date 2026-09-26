@@ -8,4 +8,15 @@ obj/
 db/data/
 .env
 .env.*
-!env.example
+!*.example
+!.env.example
+
+# Scripts temporales omitidos por ahora
+scripts.sh
+test.sh
+
+# Claves privadas y certificados TLS
+*.pem
+*.key
+*.crt
+*.cer

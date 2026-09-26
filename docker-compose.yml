@@ -1,0 +1,23 @@
+services:
+  web2:
+    build:
+      context: ./web2
+      dockerfile: Dockerfile
+    image: octaviobenjamin/web2:1.0.0
+    container_name: web2
+    env_file:
+      - .env
+    ports:
+      - "8081:80"
+    networks:
+      - tp-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 64M
+
+networks:
+  tp-network:
+    name: tp-network
