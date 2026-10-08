@@ -3,402 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NovaOps Monitor - Estado de Servicios</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>Monitor de servicios · Fintech Nova</title>
     <!-- Configuración dinámica inyectada desde variables de entorno (.env) en el arranque -->
     <script src="config.js"></script>
-    <style>
-        :root {
-            --bg-base: #0b0f19;
-            --bg-card: #111827;
-            --bg-card-hover: #162032;
-            --border-color: #1f293d;
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
-            --accent-green: #10b981;
-            --accent-green-bg: rgba(16, 185, 129, 0.12);
-            --accent-red: #ef4444;
-            --accent-red-bg: rgba(239, 68, 68, 0.15);
-            --accent-yellow: #f59e0b;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 30px 20px;
-        }
-
-        .container {
-            max-width: 1050px;
-            margin: 0 auto;
-        }
-
-        /* Header */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .brand-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-        }
-
-        h1 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .brand-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .refresh-btn {
-            background-color: #1f2937;
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-family: inherit;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .refresh-btn:hover {
-            background-color: #374151;
-            border-color: #4b5563;
-        }
-
-        /* Global Alert Banner (Uptime Kuma Style) */
-        .global-alert {
-            display: none;
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            font-weight: 600;
-            animation: pulse-border 2s infinite;
-        }
-
-        .global-alert.down {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: var(--accent-red-bg);
-            border: 1px solid var(--accent-red);
-            color: #fca5a5;
-        }
-
-        .global-alert.all-ok {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: var(--accent-green-bg);
-            border: 1px solid var(--accent-green);
-            color: #6ee7b7;
-        }
-
-        @keyframes pulse-border {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-        }
-
-        /* Summary Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-
-        .stat-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 20px;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-        }
-
-        .stat-value {
-            font-size: 1.6rem;
-            font-weight: 800;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        /* Services Grid */
-        .services-section h2 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .services-list {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .service-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 18px 22px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: transform 0.15s ease, border-color 0.15s ease;
-            flex-wrap: wrap;
-            gap: 14px;
-        }
-
-        .service-card:hover {
-            border-color: #374151;
-            background-color: var(--bg-card-hover);
-        }
-
-        .service-card.status-down {
-            border-left: 5px solid var(--accent-red);
-        }
-
-        .service-card.status-up {
-            border-left: 5px solid var(--accent-green);
-        }
-
-        .service-info {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            min-width: 250px;
-        }
-
-        .service-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            background-color: #1f293d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-
-        .service-title {
-            font-weight: 700;
-            font-size: 1rem;
-            margin-bottom: 4px;
-        }
-
-        .service-path {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
-
-        .tech-badge {
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 6px;
-            background-color: #1e293b;
-            color: #93c5fd;
-            border: 1px solid #2e3d5b;
-            display: inline-block;
-            margin-left: 6px;
-        }
-
-        /* Ping bars (Heartbeats) */
-        .heartbeats {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .beat {
-            width: 7px;
-            height: 24px;
-            border-radius: 3px;
-            background-color: #243048;
-            transition: all 0.3s ease;
-        }
-
-        .beat.up { background-color: var(--accent-green); }
-        .beat.down { background-color: var(--accent-red); }
-
-        /* Meta metrics */
-        .service-metrics {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-        }
-
-        .metric {
-            text-align: right;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .metric-label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        .metric-value {
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-
-        .status-badge.up {
-            background-color: var(--accent-green-bg);
-            color: #34d399;
-            border: 1px solid rgba(52, 211, 153, 0.3);
-        }
-
-        .status-badge.down {
-            background-color: var(--accent-red-bg);
-            color: #f87171;
-            border: 1px solid rgba(248, 113, 113, 0.3);
-        }
-
-        .status-badge.loading {
-            background-color: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: currentColor;
-        }
-
-        footer {
-            margin-top: 40px;
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-        }
-    </style>
+    <link rel="stylesheet" href="theme.css">
 </head>
 <body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<aside class="sidebar" aria-label="Navegación de Fintech Nova">
+    <a class="brand" href="/" aria-label="Fintech Nova, panel principal"><span class="brand-mark">N<span></span></span><span class="brand-word">nova<small>FINTECH</small></span></a>
+    <div class="workspace"><span class="workspace-icon">◇</span><div><strong>Panel de operaciones</strong><span>Fintech Nova</span></div></div>
+    <p class="nav-label">ESPACIO DE TRABAJO</p>
+    <nav class="navigation" aria-label="Secciones"><a class="nav-item" href="/"><span class="nav-icon">▦</span>Panel principal</a><a class="nav-item active" href="/monitor/" aria-current="page"><span class="nav-icon">◉</span>Monitor de servicios</a><a class="nav-item" href="/monitor/#arquitectura"><span class="nav-icon">◇</span>Arquitectura</a></nav>
+    <div class="sidebar-bottom"><div class="architecture-mark">◇ <span>Una entrada. Cinco APIs.</span></div><p>Nginx <span>→</span> Servicios <span>→</span> MariaDB</p><div class="team"><span class="team-avatar">10</span><div><strong>Grupo 10</strong><span>Laboratorio DevOps · 2026</span></div></div></div>
+</aside>
 
-<div class="container">
-    <!-- Header -->
-    <header>
-        <div class="brand">
-            <div class="brand-icon">⚡</div>
-            <div>
-                <h1>NovaOps Monitor</h1>
-                <div class="brand-subtitle">FinTech Nova • Panel de Disponibilidad de Microservicios (Frontend #2)</div>
+<div class="main-shell">
+    <div class="topbar"><div class="breadcrumb"><span>Operaciones</span><span class="slash">/</span><strong>Monitor</strong></div><span class="environment"><span class="small-dot"></span>Entorno académico</span></div>
+    <main class="container" id="contenido" tabindex="-1">
+        <header class="page-header"><div><p class="eyebrow">OBSERVABILIDAD</p><h1>Estado de servicios</h1><p class="page-description">Disponibilidad y tiempo de respuesta de las rutas configuradas, a través del mismo acceso HTTPS del panel.</p></div><div class="header-actions"><button class="refresh-btn" id="manual-refresh" type="button" onclick="checkAllEndpoints()"><span aria-hidden="true">↻</span> Verificar ahora</button></div></header>
+
+        <div id="global-alert" class="global-alert loading" role="status" aria-live="polite"><span id="global-alert-text">Consultando disponibilidad de los servicios…</span><span id="countdown">Primera consulta en curso</span></div>
+
+        <section class="stats-grid" aria-label="Resumen de disponibilidad"><div class="stat-card"><div class="stat-label">ESTADO GENERAL</div><div class="stat-value" id="general-status">—</div><div class="stat-detail">Última comprobación</div></div><div class="stat-card"><div class="stat-label">SERVICIOS OPERATIVOS</div><div class="stat-value" id="up-count">—</div><div class="stat-detail">Sobre las rutas configuradas</div></div><div class="stat-card"><div class="stat-label">LATENCIA PROMEDIO</div><div class="stat-value" id="avg-latency">— ms</div><div class="stat-detail">Respuestas correctas</div></div></section>
+
+        <section class="services-section" aria-labelledby="services-title"><div class="section-heading"><div><p class="eyebrow">COMPROBACIONES</p><h2 id="services-title">Servicios monitoreados</h2><p>El navegador consulta las rutas públicas de Nginx; los contenedores internos siguen sin puertos expuestos.</p></div><span class="poll-chip"><span class="poll-dot"></span>Sondeo cada 10 s</span></div><div class="services-list" id="services-list"></div><div class="section-footer">Las barras muestran hasta doce comprobaciones de este navegador. No se guardan métricas históricas en un servidor.</div></section>
+
+        <section class="architecture-section" id="arquitectura" aria-labelledby="architecture-title">
+            <div class="section-heading architecture-heading"><div><p class="eyebrow">ARQUITECTURA INTERACTIVA</p><h2 id="architecture-title">Así viaja una solicitud</h2><p>Seleccioná un componente para ver su función y la ruta que sigue el tráfico.</p></div><span class="architecture-chip"><span class="architecture-chip-dot"></span>Una sola puerta pública</span></div>
+            <div class="architecture-flow" aria-label="Navegador, Nginx, servicios internos y MariaDB">
+                <div class="architecture-stage"><span class="architecture-stage-label">01 · USUARIO</span><button class="architecture-node is-selected" type="button" data-architecture-node="browser" aria-pressed="true"><span class="architecture-node-icon" aria-hidden="true">◎</span><span class="architecture-node-copy"><strong>Navegador</strong><small>Acceso HTTPS</small></span><span class="architecture-node-state">Cliente</span></button><span class="architecture-edge" aria-hidden="true">→</span></div>
+                <div class="architecture-stage"><span class="architecture-stage-label">02 · ENTRADA</span><button class="architecture-node architecture-node-gateway" type="button" data-architecture-node="gateway" data-architecture-service="web" aria-pressed="false"><span class="architecture-node-icon" aria-hidden="true">▣</span><span class="architecture-node-copy"><strong>Nginx + Web 1</strong><small>HTTPS 443 · proxy</small></span><span class="architecture-node-state">Sin sondeo</span></button><span class="architecture-edge" aria-hidden="true">→</span></div>
+                <div class="architecture-stage architecture-stage-services"><span class="architecture-stage-label">03 · SERVICIOS INTERNOS</span><div class="architecture-service-grid"><button class="architecture-node architecture-node-monitor" type="button" data-architecture-node="web2" aria-pressed="false"><span class="architecture-node-icon" aria-hidden="true">◫</span><span class="architecture-node-copy"><strong>Web 2 · Monitor</strong><small>web2:80</small></span><span class="architecture-node-state">Vista actual</span></button><button class="architecture-node" type="button" data-architecture-node="clientes" data-architecture-service="clientes" aria-pressed="false"><span class="architecture-node-copy"><strong>Clientes</strong><small>api-clientes:8080</small></span><span class="architecture-node-state">Sin sondeo</span></button><button class="architecture-node" type="button" data-architecture-node="pagos" data-architecture-service="pagos" aria-pressed="false"><span class="architecture-node-copy"><strong>Pagos</strong><small>api-pagos:8080</small></span><span class="architecture-node-state">Sin sondeo</span></button><button class="architecture-node" type="button" data-architecture-node="facturas" data-architecture-service="facturas" aria-pressed="false"><span class="architecture-node-copy"><strong>Facturas</strong><small>api-facturas:8080</small></span><span class="architecture-node-state">Sin sondeo</span></button><button class="architecture-node" type="button" data-architecture-node="transacciones" data-architecture-service="transacciones" aria-pressed="false"><span class="architecture-node-copy"><strong>Transacciones</strong><small>api-transacciones:8080</small></span><span class="architecture-node-state">Sin sondeo</span></button><button class="architecture-node" type="button" data-architecture-node="tarjetas" data-architecture-service="tarjetas" aria-pressed="false"><span class="architecture-node-copy"><strong>Tarjetas</strong><small>api-tarjetas:8080</small></span><span class="architecture-node-state">Sin sondeo</span></button></div><span class="architecture-edge architecture-edge-db" aria-hidden="true">→</span></div>
+                <div class="architecture-stage"><span class="architecture-stage-label">04 · DATOS · SOLO APIs</span><button class="architecture-node architecture-node-db" type="button" data-architecture-node="db" aria-pressed="false"><span class="architecture-node-icon" aria-hidden="true">▤</span><span class="architecture-node-copy"><strong>MariaDB</strong><small>db:3306 · SQL</small></span><span class="architecture-node-state">No expuesta</span></button></div>
             </div>
-        </div>
-        <div class="header-actions">
-            <button class="refresh-btn" id="manual-refresh" onclick="checkAllEndpoints()">
-                <span>🔄</span> Verificar Ahora
-            </button>
-        </div>
-    </header>
+            <div class="architecture-detail" aria-live="polite"><div><span class="architecture-detail-label" id="architecture-detail-kind">CLIENTE</span><h3 id="architecture-detail-title">Navegador</h3><p id="architecture-detail-description">Desde tu navegador salen las solicitudes HTTPS. No hay acceso público directo a las APIs ni a la base de datos.</p></div><div class="architecture-detail-meta"><span class="architecture-detail-route" id="architecture-detail-route">https://&lt;IP o dominio&gt;/</span><span class="architecture-detail-status" id="architecture-detail-status">Punto de acceso</span></div></div>
+            <p class="architecture-note">Los estados de las APIs y de la ruta principal provienen de consultas HTTP de este navegador. No son una comprobación directa de los contenedores ni de MariaDB.</p>
+        </section>
 
-    <!-- Global Alert (Uptime Kuma Style) -->
-    <div id="global-alert" class="global-alert all-ok">
-        <span id="global-alert-text">🟢 Todos los sistemas funcionando con normalidad</span>
-        <span id="countdown" style="font-size: 0.8rem; opacity: 0.8;">Próximo sondeo en 10s</span>
-    </div>
+        <section class="credits" id="equipo" aria-labelledby="credits-title"><div><p class="eyebrow">EQUIPO</p><h2 id="credits-title">Grupo 10</h2><p>Desarrollo y Operaciones · Trabajo Práctico 2026</p></div><ul><li>Arnedo Jesus Francisco <span>97080</span></li><li>Mendez Octavio Benjamin <span>97177</span></li><li>Paez, Areli Lisbeth <span>400802</span></li><li>Quiroga Lucía <span>402597</span></li><li>Reinoso Daniel <span>92264</span></li></ul></section>
 
-    <!-- Stats summary -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Estado General</div>
-            <div class="stat-value" id="general-status" style="color: var(--accent-green)">100%</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Servicios Operativos</div>
-            <div class="stat-value" id="up-count">6 / 6</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Latencia Promedio</div>
-            <div class="stat-value" id="avg-latency">-- ms</div>
-        </div>
-    </div>
-
-    <!-- Services list -->
-    <div class="services-section">
-        <h2>Microservicios Monitoreados (Vía HTTPS Proxy)</h2>
-        <div class="services-list" id="services-list">
-            <!-- Renders via JS -->
-        </div>
-    </div>
-
-    <footer>
-        Microservicio <code>web2</code> • Desplegado en Docker NGINX • Trabajo Práctico DevOps 2026 - Grupo 10
-    </footer>
+        <footer><span>Fintech Nova <span class="footer-divider">/</span> Monitor de servicios</span><span>Proyecto académico · Grupo 10</span></footer>
+    </main>
 </div>
 
 <script>
-    // Los endpoints NO se encuentran hardcodeados en el código fuente.
+    // El sondeo usa config.js; el diagrama describe la topología de este TP.
     let rawServices = (window.ENV_CONFIG && window.ENV_CONFIG.SERVICES) ? window.ENV_CONFIG.SERVICES : null;
     if (typeof rawServices === 'string') {
         try { rawServices = JSON.parse(rawServices); } catch (e) { console.error('Error parseando SERVICES_CONFIG:', e); }
@@ -411,12 +61,58 @@
     let countdownSeconds = 10;
     let timerInterval = null;
 
+    const ARCHITECTURE_DETAILS = {
+        browser: { kind: 'CLIENTE', title: 'Navegador', route: 'https://<IP o dominio>/', description: 'Desde tu navegador salen las solicitudes HTTPS. No hay acceso público directo a las APIs ni a la base de datos.', status: 'Punto de acceso' },
+        gateway: { kind: 'PUERTA DE ENTRADA', title: 'Nginx + Web 1', route: '/ · /monitor/ · /api/*', description: 'El único contenedor con un puerto publicado. Nginx sirve Web 1 y termina TLS con el certificado montado. Hacia Web 2 y las APIs reenvía HTTP por la red Docker privada.', status: 'Ruta / sin sondeo' },
+        web2: { kind: 'PRESENTACIÓN', title: 'Web 2 · Monitor', route: '/monitor/ → web2:80', description: 'Nginx interno sirve esta página. Su JavaScript consulta las rutas públicas a través de Web 1; no consulta MariaDB directamente.', status: 'Vista actual; sin sondeo propio' },
+        clientes: { kind: 'MICROSERVICIO', title: 'API Clientes', route: '/api/clientes → api-clientes:8080', description: 'Recibe solicitudes de clientes desde Nginx y utiliza MariaDB en la red privada.', status: 'Sin sondeo' },
+        pagos: { kind: 'MICROSERVICIO', title: 'API Pagos', route: '/api/pagos → api-pagos:8080', description: 'Recibe solicitudes de pagos desde Nginx y utiliza MariaDB en la red privada.', status: 'Sin sondeo' },
+        facturas: { kind: 'MICROSERVICIO', title: 'API Facturas', route: '/api/facturas → api-facturas:8080', description: 'Recibe solicitudes de facturas desde Nginx y utiliza MariaDB en la red privada.', status: 'Sin sondeo' },
+        transacciones: { kind: 'MICROSERVICIO', title: 'API Transacciones', route: '/api/transacciones → api-transacciones:8080', description: 'Recibe solicitudes de transacciones desde Nginx y utiliza MariaDB en la red privada.', status: 'Sin sondeo' },
+        tarjetas: { kind: 'MICROSERVICIO', title: 'API Tarjetas', route: '/api/tarjetas → api-tarjetas:8080', description: 'Recibe solicitudes de tarjetas desde Nginx y utiliza MariaDB en la red privada.', status: 'Sin sondeo' },
+        db: { kind: 'DATOS', title: 'MariaDB', route: 'db:3306 · red Docker privada', description: 'Las cinco APIs se conectan a esta base de datos. No se publica su puerto al exterior y el navegador no puede verificarla directamente.', status: 'No verificada directamente' }
+    };
+    let selectedArchitectureNode = 'browser';
+
+    function selectArchitectureNode(id) {
+        const detail = ARCHITECTURE_DETAILS[id];
+        if (!detail) return;
+        selectedArchitectureNode = id;
+        document.querySelectorAll('[data-architecture-node]').forEach(node => {
+            const selected = node.dataset.architectureNode === id;
+            node.classList.toggle('is-selected', selected);
+            node.setAttribute('aria-pressed', String(selected));
+        });
+        document.getElementById('architecture-detail-kind').textContent = detail.kind;
+        document.getElementById('architecture-detail-title').textContent = detail.title;
+        document.getElementById('architecture-detail-route').textContent = detail.route;
+        document.getElementById('architecture-detail-description').textContent = detail.description;
+        const node = Array.from(document.querySelectorAll('[data-architecture-node]')).find(item => item.dataset.architectureNode === id);
+        const measured = node && node.dataset.architectureService && (node.classList.contains('is-up') || node.classList.contains('is-down'));
+        document.getElementById('architecture-detail-status').textContent = measured
+            ? `${id === 'gateway' ? 'Ruta /' : 'Última consulta'} · ${node.querySelector('.architecture-node-state').textContent}`
+            : detail.status;
+    }
+
+    function updateArchitectureStatus(s, isUp, code) {
+        const node = Array.from(document.querySelectorAll('[data-architecture-service]')).find(item => item.dataset.architectureService === s.id);
+        if (!node) return;
+        node.classList.toggle('is-up', isUp);
+        node.classList.toggle('is-down', !isUp);
+        node.querySelector('.architecture-node-state').textContent = isUp ? `HTTP ${code}` : (typeof code === 'number' ? `HTTP ${code}` : 'Sin respuesta');
+        if (selectedArchitectureNode === node.dataset.architectureNode) selectArchitectureNode(selectedArchitectureNode);
+    }
+
+    document.querySelectorAll('[data-architecture-node]').forEach(node => {
+        node.addEventListener('click', () => selectArchitectureNode(node.dataset.architectureNode));
+    });
+
     function renderInitialCards() {
         const container = document.getElementById('services-list');
         if (SERVICES.length === 0) {
             container.innerHTML = `
-                <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--accent-red); text-align: center; color: #fca5a5;">
-                    ⚠️ <strong>Configuración no encontrada:</strong> No se han detectado endpoints en las variables de entorno (.env). Verifique la inyección de <code>web2/.env</code>.
+                <div class="config-warning">
+                    ⚠️ <strong>Configuración no encontrada:</strong> No se detectaron rutas para monitorear. Revisá <code>web2/.env</code>.
                 </div>
             `;
             return;
@@ -511,9 +207,19 @@
             return `<div class="beat ${histItem.up ? 'up' : 'down'}" title="${histItem.latency}ms - HTTP ${histItem.code}"></div>`;
         }).join('');
         beatsEl.innerHTML = beatsHtml;
+        updateArchitectureStatus(s, isUp, code);
     }
 
     async function checkAllEndpoints() {
+        if (SERVICES.length === 0) {
+            document.getElementById('global-alert').className = 'global-alert down';
+            document.getElementById('global-alert-text').textContent = 'No hay servicios configurados para monitorear.';
+            document.getElementById('countdown').textContent = 'Revisá web2/.env';
+            document.getElementById('general-status').textContent = '—';
+            document.getElementById('up-count').textContent = '0 / 0';
+            document.getElementById('avg-latency').textContent = '— ms';
+            return;
+        }
         const results = await Promise.all(SERVICES.map(s => checkService(s)));
 
         let upCount = 0;
@@ -549,13 +255,14 @@
 
         if (downServices.length === 0) {
             alertBanner.className = 'global-alert all-ok';
-            alertText.innerHTML = '🟢 Todos los microservicios están 100% operativos';
+            alertText.innerHTML = '🟢 Todas las rutas monitoreadas están operativas';
         } else {
             alertBanner.className = 'global-alert down';
             alertText.innerHTML = `🚨 ALERTA: ${downServices.length} servicio(s) caído(s): <strong>${downServices.join(', ')}</strong>`;
         }
 
         countdownSeconds = 10;
+        document.getElementById('countdown').textContent = 'Próximo sondeo en 10s';
     }
 
     // Auto-polling cycle
@@ -563,6 +270,7 @@
     checkAllEndpoints();
 
     setInterval(() => {
+        if (SERVICES.length === 0) return;
         countdownSeconds--;
         const countdownEl = document.getElementById('countdown');
         if (countdownEl) {

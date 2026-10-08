@@ -1,2 +1,11 @@
 data/
 .git/
+.env
+.env.*
+!env.example
+config.js
+*.pem
+*.key
+*.crt
+node_modules/
+README.md
