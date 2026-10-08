@@ -106,7 +106,7 @@ app.innerHTML = `
     <div class="sidebar-bottom"><div class="architecture-mark">${icon('layers')}<span>Una entrada. Cinco servicios.</span></div><p>Nginx <span>→</span> APIs <span>→</span> MariaDB</p><div class="team"><span class="team-avatar">10</span><div><strong>Grupo 10</strong><span>Laboratorio DevOps · 2026</span></div></div></div>
   </aside>
   <div class="main-shell">
-    <header class="topbar"><div class="breadcrumb"><span>Operaciones</span><span class="slash">/</span><strong id="breadcrumb-title">Clientes</strong></div><span class="environment"><span class="small-dot"></span>Entorno académico</span></header>
+    <header class="topbar"><div class="breadcrumb"><span>Operaciones</span><span class="slash">/</span><strong id="breadcrumb-title">Clientes</strong></div><div class="topbar-actions"><a class="monitor-link" href="/monitor/" aria-label="Abrir monitor de servicios">${icon('clock')}<span>Monitor de servicios</span>${icon('arrow')}</a><span class="environment"><span class="small-dot"></span>Entorno académico</span></div></header>
     <main id="contenido" tabindex="-1">
       <section class="page-heading"><div><p class="eyebrow" id="eyebrow"></p><h1 id="page-title"></h1><p id="page-description" class="description"></p></div><button class="button primary" id="new-record">${icon('plus')}<span></span></button></section>
       <section class="summary-grid" aria-label="Resumen del módulo">

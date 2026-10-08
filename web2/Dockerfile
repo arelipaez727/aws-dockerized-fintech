@@ -2,6 +2,7 @@ FROM nginx:alpine
 
 # Copiar archivos estáticos y script de inicialización
 COPY index.html /usr/share/nginx/html/index.html
+COPY theme.css /usr/share/nginx/html/theme.css
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
