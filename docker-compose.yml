@@ -128,9 +128,9 @@ services:
   web2:
     image: octaviobenjamin/web2:1.0.0
     container_name: fintech-nova-monitor
-    env_file:
-      - path: ./web2/.env
-        format: raw
+    build: ./web2
+    volumes:
+      - ./web2/config.yaml:/app/config.yaml:ro
     networks:
       - app_net
     restart: always

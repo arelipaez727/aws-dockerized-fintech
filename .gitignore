@@ -19,3 +19,6 @@ certs/
 *.cer
 scripts.sh
 test.sh
+
+# Web2 Monitor config
+web2/config.yaml

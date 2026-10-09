@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de servicios · Fintech Nova</title>
-    <!-- Configuración dinámica inyectada desde variables de entorno (.env) en el arranque -->
+    <!-- Configuración dinámica inyectada desde variables de entorno (config.yaml) en el arranque -->
     <script src="config.js"></script>
     <link rel="stylesheet" href="theme.css">
 </head>
@@ -112,7 +112,7 @@
         if (SERVICES.length === 0) {
             container.innerHTML = `
                 <div class="config-warning">
-                    ⚠️ <strong>Configuración no encontrada:</strong> No se detectaron rutas para monitorear. Revisá <code>web2/.env</code>.
+                    ⚠️ <strong>Configuración no encontrada:</strong> No se detectaron rutas para monitorear. Revisá <code>web2/config.yaml</code>.
                 </div>
             `;
             return;
@@ -214,7 +214,7 @@
         if (SERVICES.length === 0) {
             document.getElementById('global-alert').className = 'global-alert down';
             document.getElementById('global-alert-text').textContent = 'No hay servicios configurados para monitorear.';
-            document.getElementById('countdown').textContent = 'Revisá web2/.env';
+            document.getElementById('countdown').textContent = 'Revisá web2/config.yaml';
             document.getElementById('general-status').textContent = '—';
             document.getElementById('up-count').textContent = '0 / 0';
             document.getElementById('avg-latency').textContent = '— ms';
