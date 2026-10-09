@@ -4,6 +4,7 @@ data/
 .env.*
 !env.example
 config.js
+config.yaml
 *.pem
 *.key
 *.crt

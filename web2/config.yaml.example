@@ -1,7 +1,31 @@
 services:
-  - id: 
-    name:    
-    path: 
-    lang: 
-    icon: 
-  
+  - id: web
+    name: Frontend principal
+    path: /
+    lang: Vite / Vanilla JS
+    icon: 🌐
+  - id: clientes
+    name: API Clientes
+    path: /api/clientes
+    lang: Python / Flask
+    icon: 👥
+  - id: pagos
+    name: API Pagos
+    path: /api/pagos
+    lang: Node.js / Express
+    icon: 💳
+  - id: facturas
+    name: API Facturas
+    path: /api/facturas
+    lang: Java / Spring Boot
+    icon: 🧾
+  - id: transacciones
+    name: API Transacciones
+    path: /api/transacciones
+    lang: Go / net/http
+    icon: 💸
+  - id: tarjetas
+    name: API Tarjetas
+    path: /api/tarjetas
+    lang: .NET Minimal API
+    icon: 🪪

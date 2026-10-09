@@ -2,13 +2,44 @@
 set -e
 
 if [ $# -eq 0 ]; then
-    echo "Uso: $0 [--preparar | --levantar]"
+    echo "Uso: $0 [--build <usuario-dockerhub> | --preparar | --levantar]"
     exit 1
 fi
 
 case "$1" in
+    --build)
+        # Esta fase se ejecuta en la computadora local, desde la raiz del proyecto.
+        DOCKERHUB_USER="${2:-${DOCKERHUB_USER:-}}"
+        if [ -z "$DOCKERHUB_USER" ] || [ ! -f docker-compose.yml ]; then
+            echo "Uso: ./deploy.sh --build <usuario-dockerhub> (desde la raiz del proyecto)"
+            exit 1
+        fi
+
+        publicar_imagen() {
+            servicio="$1"
+            version="$2"
+            contexto="$3"
+            imagen="$DOCKERHUB_USER/fintech-nova-$servicio:$version"
+
+            echo "=== Construyendo $imagen ==="
+            docker build -t "$imagen" -f "$servicio/Dockerfile" "$contexto"
+            echo "=== Publicando $imagen ==="
+            docker push "$imagen"
+        }
+
+        publicar_imagen db 1.0.0 .
+        publicar_imagen api-clientes 1.0.0 .
+        publicar_imagen api-pagos 1.0.0 .
+        publicar_imagen api-facturas 1.0.1 .
+        publicar_imagen api-transacciones 1.0.0 .
+        publicar_imagen api-tarjetas 1.0.0 .
+        publicar_imagen web 1.0.1 .
+        publicar_imagen web2 1.0.0 web2
+
+        echo "Las ocho imagenes se publicaron en Docker Hub. Falta actualizar y probar docker-compose.yml."
+        ;;
     --preparar)
-        echo "=== [1/4] Instalando dependencias básicas (Curl) ==="
+        echo "=== [1/4] Comprobando dependencias básicas (curl y OpenSSL) ==="
         if [ -f /etc/os-release ]; then
             . /etc/os-release
             if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
@@ -16,7 +47,13 @@ case "$1" in
                 sudo apt-get install -y ca-certificates curl gnupg
             elif [ "$ID" = "amzn" ]; then
                 sudo yum update -y
-                sudo yum install -y curl
+                # Amazon Linux 2023 ya incluye curl-minimal, incompatible con curl completo.
+                if ! command -v curl >/dev/null 2>&1; then
+                    sudo yum install -y curl-minimal
+                fi
+                if ! command -v openssl >/dev/null 2>&1; then
+                    sudo yum install -y openssl
+                fi
             fi
         fi
 
@@ -63,9 +100,6 @@ case "$1" in
             echo "Certificados SSL ya existen en certs/."
         fi
         
-        echo "=== Pulleando las imágenes de Docker Hub ==="
-        sudo docker compose pull
-        
         echo "----------------------------------------------------------------------"
         echo "Fase de preparación completada."
         echo "Ahora, ejecuta localmente './transferir.sh --levantar' para enviar los .env,"
@@ -74,7 +108,7 @@ case "$1" in
         ;;
         
     --levantar)
-        echo "=== [1/2] Validando archivos de configuración ==="
+        echo "=== [1/4] Validando archivos de configuración ==="
         MISSING_FILES=0
 
         for folder in db api-clientes api-pagos api-facturas api-transacciones api-tarjetas; do
@@ -89,6 +123,11 @@ case "$1" in
             MISSING_FILES=1
         fi
 
+        if [ ! -f "certs/cert.pem" ] || [ ! -f "certs/key.pem" ]; then
+            echo "ERROR: Faltan los certificados TLS en certs/"
+            MISSING_FILES=1
+        fi
+
         if [ "$MISSING_FILES" -eq 1 ]; then
             echo "----------------------------------------------------------------------"
             echo "Hay archivos de configuración faltantes."
@@ -99,15 +138,36 @@ case "$1" in
 
         echo "Archivos validados correctamente."
 
-        echo "=== [2/2] Levantando los contenedores ==="
+        echo "=== [2/4] Descargando las imagenes de Docker Hub ==="
+        sudo docker compose pull
+
+        echo "=== [3/4] Levantando los contenedores ==="
         sudo docker compose up -d
+
+        echo "=== [4/4] Comprobando las rutas HTTPS ==="
+        for ruta in / /api/clientes /api/pagos /api/facturas /api/transacciones /api/tarjetas /monitor/; do
+            estado=""
+            for intento in $(seq 1 18); do
+                estado=$(curl --insecure --silent --output /dev/null --write-out '%{http_code}' "https://127.0.0.1$ruta" || true)
+                if [ "$estado" = "200" ]; then
+                    break
+                fi
+                sleep 5
+            done
+            if [ "$estado" != "200" ]; then
+                echo "ERROR: $ruta no respondio con HTTP 200 (ultimo estado: $estado)"
+                sudo docker compose ps
+                exit 1
+            fi
+            echo "OK: $ruta (HTTP 200)"
+        done
 
         echo "=== Despliegue finalizado exitosamente ==="
         sudo docker compose ps
         ;;
         
     *)
-        echo "Parámetro inválido. Uso: $0 [--preparar | --levantar]"
+        echo "Parámetro inválido. Uso: $0 [--build <usuario-dockerhub> | --preparar | --levantar]"
         exit 1
         ;;
 esac
