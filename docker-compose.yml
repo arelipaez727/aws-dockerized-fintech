@@ -128,7 +128,6 @@ services:
   web2:
     image: octaviobenjamin/web2:1.0.0
     container_name: fintech-nova-monitor
-    build: ./web2
     volumes:
       - ./web2/config.yaml:/app/config.yaml:ro
     networks:
