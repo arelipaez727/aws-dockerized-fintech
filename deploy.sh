@@ -40,44 +40,26 @@ case "$1" in
         ;;
     --preparar)
         echo "=== [1/4] Comprobando dependencias básicas (curl y OpenSSL) ==="
-        if [ -f /etc/os-release ]; then
-            . /etc/os-release
-            if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
-                sudo apt-get update
-                sudo apt-get install -y ca-certificates curl gnupg
-            elif [ "$ID" = "amzn" ]; then
-                sudo yum update -y
-                # Amazon Linux 2023 ya incluye curl-minimal, incompatible con curl completo.
-                if ! command -v curl >/dev/null 2>&1; then
-                    sudo yum install -y curl-minimal
-                fi
-                if ! command -v openssl >/dev/null 2>&1; then
-                    sudo yum install -y openssl
-                fi
-            fi
+        sudo yum update -y
+        # Amazon Linux 2023 ya incluye curl-minimal, incompatible con curl completo.
+        if ! command -v curl >/dev/null 2>&1; then
+            sudo yum install -y curl-minimal
+        fi
+        if ! command -v openssl >/dev/null 2>&1; then
+            sudo yum install -y openssl
         fi
 
         echo "=== [2/4] Instalando Docker y Docker Compose ==="
         if ! command -v docker &> /dev/null; then
-            if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
-                sudo install -m 0755 -d /etc/apt/keyrings
-                if [ ! -f /etc/apt/keyrings/docker.gpg ]; then
-                    curl -fsSL https://download.docker.com/linux/$ID/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-                    sudo chmod a+r /etc/apt/keyrings/docker.gpg
-                fi
-                echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$ID $VERSION_CODENAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                sudo apt-get update
-                sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-            elif [ "$ID" = "amzn" ]; then
-                sudo yum install -y docker
-                sudo systemctl start docker
-                sudo systemctl enable docker
-                
-                # Instalar docker-compose como plugin
-                sudo mkdir -p /usr/local/lib/docker/cli-plugins
-                sudo curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
-                sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-            fi
+            sudo yum install -y docker
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            
+            # Instalar docker-compose como plugin
+            sudo mkdir -p /usr/local/lib/docker/cli-plugins
+            sudo curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            
             sudo systemctl enable docker || true
             sudo systemctl start docker || true
             # Agregar usuario actual al grupo docker
