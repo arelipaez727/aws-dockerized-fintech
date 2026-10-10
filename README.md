@@ -59,34 +59,50 @@ gracias a `.dockerignore` y no se publican dentro de las imágenes.
 
 ## Despliegue en AWS EC2
 
-Para desplegar la infraestructura en la instancia EC2, utilizamos dos scripts: `transferir.sh` (ejecutado localmente) y `deploy.sh` (ejecutado en el servidor). 
+El flujo de despliegue tiene **dos pasos**. Ambos scripts de transferencia aceptan la IP pública
+de la instancia como único argumento; el usuario SSH es `ec2-user` y la llave debe estar en
+`~/.ssh/keydevops.pem` (Windows: `$HOME\.ssh\keydevops.pem`). Se ejecutan desde la raíz del
+proyecto y requieren los seis `.env` y `web2/config.yaml` completos. Este último puede crearse
+a partir de `web2/config.yaml.example`. La llave y esos archivos nunca se suben a Git.
 
-Antes de comenzar, asegúrate de editar las variables `EC2_USER`, `EC2_IP` y `SSH_KEY` dentro del archivo `transferir.sh` con los datos correspondientes a tu sesión de AWS Academy.
+1. **En la computadora local**, transferir la configuración. Elegir **una** de estas opciones:
 
-Sigue estos pasos en orden:
+   Linux/WSL:
 
-### 1. Preparar el servidor remoto
-**En tu computadora local**, ejecuta el siguiente comando para enviar los archivos `deploy.sh` y `docker-compose.yml` al servidor:
-```bash
-./transferir.sh --preparar
-```
+   ```bash
+   bash ./transferir.sh <IP_PUBLICA_EC2>
+   ```
 
-### 2. Configurar dependencias e infraestructura
-**Conectado al servidor EC2 por SSH**, ejecuta el script de despliegue para instalar Docker, crear las carpetas necesarias y generar el certificado SSL:
-```bash
-./deploy.sh --preparar
-```
+   Windows PowerShell:
 
-### 3. Transferir configuraciones y secretos
-**De vuelta en tu computadora local**, transfiere todos los archivos `.env` y `web2/config.yaml` a las carpetas que acaba de crear el paso anterior en el servidor. Si falta `web2/config.yaml`, crealo a partir de `web2/config.yaml.example` antes de transferir:
-```bash
-./transferir.sh --levantar
-```
+   ```powershell
+   .\transferir.ps1 <IP_PUBLICA_EC2>
+   ```
 
-### 4. Validar archivos y levantar el stack
-**Conectado nuevamente al servidor EC2 por SSH**, ejecuta el último paso para validar los archivos, descargar las imágenes, poner en marcha los contenedores y comprobar las rutas HTTPS:
-```bash
-./deploy.sh --levantar
-```
+   El script crea `db/`, las carpetas de las cinco APIs, `web2/` y `certs/` en el home de
+   `ec2-user`. Después copia `deploy.sh`, `docker-compose.yml`, los `.env` y
+   `web2/config.yaml`, ajusta permisos y guarda la IP pública para el certificado. Si falla
+   cualquier transferencia, se detiene. En WSL la llave debe estar en el home **de WSL**
+   con permisos `600`; no basta con tenerla en el home de Windows.
+
+2. **Dentro de la EC2**, ejecutar sin argumentos:
+
+   ```bash
+   cd ~
+   bash ./deploy.sh
+   ```
+
+   `deploy.sh` valida los archivos, instala Docker y el plugin Compose si faltan, genera en
+   EC2 un certificado autofirmado con la IP pública en el SAN, descarga las ocho imágenes
+   públicas, levanta el stack y espera HTTP 200 en las siete rutas HTTPS. En ejecuciones
+   posteriores reutiliza lo instalado y el certificado mientras coincida con la IP y siga
+   vigente. Si debe renovarlo, conserva copia del par anterior en `certs/`.
+
+El certificado **no** está firmado por una autoridad de confianza: el navegador advertirá
+aunque el SAN coincida con la IP. Para probar desde la computadora local se usa
+`curl -k https://<IP_PUBLICA_EC2>/`. El Security Group debe permitir solo SSH `22` desde la
+IP del equipo y HTTPS `443` desde Internet; no abrir `80`, `3306` ni los `8080` internos.
+Los scripts no crean la instancia ni modifican el Security Group. La imagen de la DB ya incluye
+los scripts SQL de inicialización, por lo que no se copian por separado a la EC2.
 
 Los fallos observados durante el desarrollo y sus verificaciones están en [ERRORES.md](ERRORES.md).

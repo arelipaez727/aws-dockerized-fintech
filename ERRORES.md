@@ -47,14 +47,14 @@
 
 - **Síntoma observado:** en una prueba local, `/api/facturas` devolvió HTTP 502 mientras los otros endpoints respondían 200.
 - **Causa confirmada:** Nginx registró `connect() failed (111: Connection refused)` a `api-facturas:8080` antes de que Spring Boot terminara de iniciar. No era un problema de DNS ni de credenciales: luego Tomcat anunció que escuchaba en `8080`.
-- **Corrección:** `deploy.sh --levantar` espera y reintenta las rutas HTTPS antes de declarar exitoso el despliegue.
+- **Corrección:** `deploy.sh` espera y reintenta las rutas HTTPS antes de declarar exitoso el despliegue.
 - **Verificación:** una nueva solicitud a `/api/facturas` devolvió HTTP 200 y las facturas iniciales.
 
 ## E08 — El script intentaba hacer `pull` antes de recibir los `.env`
 
 - **Hallazgo preventivo, no fallo ejecutado en EC2:** `deploy.sh --preparar` llamaba a `docker compose pull` antes de `transferir.sh --levantar`. El Compose requiere seis archivos `.env` que todavía no estarían en la instancia.
-- **Corrección:** `--preparar` instala dependencias, crea carpetas y genera el certificado; `--levantar` valida los archivos, hace `pull`, levanta y prueba el stack.
-- **Estado:** se validó la sintaxis Bash, pero el flujo completo en una EC2 nueva sigue pendiente de prueba.
+- **Corrección inicial:** se separó la preparación de la instalación en dos fases. Tras la primera prueba completa en AWS, se simplificó el flujo: `transferir.sh` o `transferir.ps1` crea las carpetas y envía **todos** los archivos primero; `deploy.sh` valida, instala, genera el certificado, hace `pull` y prueba el stack.
+- **Estado:** el flujo anterior de dos fases llegó a ocho contenedores `Up` y respondió por HTTPS desde Windows. El nuevo flujo simplificado está pendiente de prueba integral en una EC2 nueva.
 
 ## E09 — Docker no estaba disponible dentro de WSL
 
@@ -80,12 +80,12 @@
 - **Síntoma observado:** `bash ./deploy.sh --preparar` terminó en el paso 1 con `problem with installed package curl-minimal` al ejecutar `yum install -y curl`.
 - **Causa:** la AMI de Amazon Linux 2023 ya trae `curl-minimal`, que proporciona el comando `curl`. El paquete `curl` completo entra en conflicto con él. `set -e` detuvo el script antes de instalar Docker.
 - **Corrección:** comprobar si existe el comando y, solo si falta, instalar `curl-minimal`; comprobar también `openssl` antes de generar el certificado. No hace falta reemplazar el paquete existente con `--allowerasing`.
-- **Verificación:** tras transferir el script corregido, el integrante informó que `bash ./deploy.sh --preparar` terminó correctamente en Amazon Linux 2023. La comprobación del despliegue completo sigue pendiente.
+- **Verificación:** tras transferir el script corregido, la preparación terminó correctamente en Amazon Linux 2023. El despliegue completo inició ocho contenedores, con MariaDB `healthy`; desde Windows, `/`, `/monitor/` y `/api/clientes` respondieron HTTP 200 por HTTPS.
 
 
 ## Riesgos pendientes de la primera prueba en AWS
 
-- `transferir.sh` todavía no detiene la ejecución si falla un `scp`: podría anunciar que transfirió archivos aunque alguno no haya llegado. Hay que comprobar las transferencias y agregar manejo de errores antes de considerar automatizado el despliegue de punta a punta.
-- `deploy.sh --preparar` solo instala el plugin de Compose cuando Docker no existe. Si la EC2 ya tuviera Docker pero no el plugin, la preparación no lo corregiría. Aún no se probó este caso.
+- El flujo nuevo de dos comandos (`transferir` local y `deploy.sh` remoto) valida archivos y detiene la ejecución ante errores de `ssh`/`scp`. Todavía falta probarlo completo en una EC2 recién creada; la prueba exitosa de AWS fue con la versión anterior de los scripts.
+- `deploy.sh` ahora comprueba el plugin Compose independientemente de Docker y lo instala si falta. Este caso particular todavía no se probó en una EC2 que ya tuviera Docker sin Compose.
 - El enunciado dice que no se use el puerto `80`; actualmente `web2` escucha en `80` **solo dentro de `app_net`**, sin publicarlo al host. Antes de la entrega conviene confirmar con la docente si la prohibición también abarca ese puerto interno o solo la entrada pública HTTP.
 - Los límites de memoria de los ocho servicios suman `2880M`, además de lo que necesita el sistema operativo. Una EC2 de 2 GB podría quedarse sin memoria; el tamaño de instancia y el consumo real deben comprobarse en el Sandbox.
