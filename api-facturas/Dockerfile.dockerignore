@@ -1,0 +1,6 @@
+# El contexto es la raiz del repositorio.
+**
+!api-facturas/
+!api-facturas/pom.xml
+!api-facturas/src/
+!api-facturas/src/**

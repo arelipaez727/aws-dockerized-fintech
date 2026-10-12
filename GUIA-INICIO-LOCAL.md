@@ -86,16 +86,17 @@ Esperamos `CN=localhost` y `DNS:localhost, IP Address:127.0.0.1`. Si los archivo
 Vuelvan a **PowerShell** en la raíz. Todos los comandos terminan en `.` porque ese punto indica el contexto de construcción, que es la raíz del repositorio. `-f` selecciona el Dockerfile de cada servicio.
 
 ```powershell
-docker build -t fintech-nova-db:1.0.0 -f db/Dockerfile .
-docker build -t fintech-nova-api-clientes:1.0.0 -f api-clientes/Dockerfile .
-docker build -t fintech-nova-api-pagos:1.0.0 -f api-pagos/Dockerfile .
-docker build -t fintech-nova-api-facturas:1.0.1 -f api-facturas/Dockerfile .
-docker build -t fintech-nova-api-transacciones:1.0.0 -f api-transacciones/Dockerfile .
-docker build -t fintech-nova-api-tarjetas:1.0.0 -f api-tarjetas/Dockerfile .
-docker build -t fintech-nova-web:1.0.0 -f web/Dockerfile .
+docker build -t yisvs9/fintech-nova-db:1.0.2 -f db/Dockerfile .
+docker build -t yisvs9/fintech-nova-api-clientes:1.0.2 -f api-clientes/Dockerfile .
+docker build -t yisvs9/fintech-nova-api-pagos:1.0.2 -f api-pagos/Dockerfile .
+docker build -t yisvs9/fintech-nova-api-facturas:1.0.2 -f api-facturas/Dockerfile .
+docker build -t yisvs9/fintech-nova-api-transacciones:1.0.2 -f api-transacciones/Dockerfile .
+docker build -t yisvs9/fintech-nova-api-tarjetas:1.0.2 -f api-tarjetas/Dockerfile .
+docker build -t yisvs9/fintech-nova-web:1.0.2 -f web/Dockerfile .
+docker build -t yisvs9/fintech-nova-web2:1.0.2 -f web2/Dockerfile web2
 ```
 
-El Compose actual usa `image:` y **no contiene `build:`**. Por eso primero deben existir estas imágenes locales. La versión `1.0.1` de facturas incluye la corrección para el driver de MariaDB.
+El Compose actual usa `image:` y **no contiene `build:`**. Por eso primero deben existir estas imágenes locales, o deben haberse descargado con `docker compose pull`. Las versiones `1.0.2` incorporan la actualización de dependencias y el puerto interno 8081 del monitor. Vite 8 se compila dentro de la imagen con Node 24; si se ejecuta `npm` fuera de Docker, requiere Node 20.19 o superior.
 
 ## 5. Levantar y verificar
 
@@ -106,17 +107,17 @@ docker compose up -d
 docker compose ps
 ```
 
-`config --quiet` valida el archivo sin imprimir los valores de los `.env`. `config --services` debe listar siete servicios. `db` debe llegar a `(healthy)` y los demás quedar `Up`. Si alguna API tarda en iniciar, esperen unos segundos y vuelvan a consultar `docker compose ps`.
+`config --quiet` valida el archivo sin imprimir los valores de los `.env`. `config --services` debe listar ocho servicios. `db` debe llegar a `(healthy)` y los demás quedar `Up`. Si alguna API tarda en iniciar, esperen unos segundos y vuelvan a consultar `docker compose ps`.
 
-El único puerto publicado al host es el de `web`: **`127.0.0.1:18444` → `8443` del contenedor**. Abran `https://localhost:18444/` en el navegador. Para verificar también los cinco proxys:
+El único puerto publicado al host es el de `web`: **`443` → `8443` del contenedor**. Abran `https://localhost/` en el navegador. Para verificar también los cinco proxys:
 
 ```powershell
-curl.exe -k -i https://127.0.0.1:18444/
-curl.exe -k -i https://127.0.0.1:18444/api/clientes
-curl.exe -k -i https://127.0.0.1:18444/api/pagos
-curl.exe -k -i https://127.0.0.1:18444/api/facturas
-curl.exe -k -i https://127.0.0.1:18444/api/transacciones
-curl.exe -k -i https://127.0.0.1:18444/api/tarjetas
+curl.exe -k -i https://127.0.0.1/
+curl.exe -k -i https://127.0.0.1/api/clientes
+curl.exe -k -i https://127.0.0.1/api/pagos
+curl.exe -k -i https://127.0.0.1/api/facturas
+curl.exe -k -i https://127.0.0.1/api/transacciones
+curl.exe -k -i https://127.0.0.1/api/tarjetas
 ```
 
 Esperamos `HTTP/1.1 200` y datos de ejemplo. `-k` omite **solo para la prueba** la verificación de confianza del certificado autofirmado. La conexión del navegador a Nginx es HTTPS; dentro de la red Docker, Nginx habla HTTP con las APIs. Ni las APIs ni MariaDB publican puertos al host.
@@ -126,7 +127,7 @@ Esperamos `HTTP/1.1 200` y datos de ejemplo. `-k` omite **solo para la prueba** 
 - **Una API devuelve `502`**: esperen unos segundos y revisen `docker compose ps` y `docker compose logs --tail=50 api-facturas` (reemplacen por el servicio afectado). Un contenedor `Up` no siempre significa que la aplicación terminó de iniciar.
 - **Base `unhealthy`**: revisen `docker compose logs --tail=50 db`. El healthcheck actual comprueba conectividad TCP porque la variante UBI de MariaDB usa un socket distinto del que intentaba la comprobación de InnoDB. Que esté `healthy` no reemplaza probar una consulta mediante las APIs.
 - **Aviso `The "..." variable is not set`**: no compartan la contraseña. Verifiquen que usan Compose 2.30 o posterior y que cada servicio conserva `env_file` con `format: raw`.
-- **Puerto 18444 ocupado**: cambien únicamente el número de la izquierda en `ports:` del servicio `web`; conserven `8443` a la derecha. No abran el puerto 80.
+- **Puerto 443 ocupado**: cambien únicamente el número de la izquierda en `ports:` del servicio `web` para una prueba local; conserven `8443` a la derecha. Para EC2 restauren `443:8443`. No abran el puerto 80.
 - **Falla después de cambiar claves**: las variables de inicialización de MariaDB solo se aplican sobre una base nueva. **No borren el volumen para “probar” si contiene datos**; coordinen antes una copia de seguridad o un reinicio deliberado.
 - **Servicios externos**: `api-pagos` y `api-transacciones` consultan proveedores externos al crear/actualizar datos. Pueden sufrir límites de uso; el dato principal debe seguir guardándose aunque falte el campo enriquecido.
 

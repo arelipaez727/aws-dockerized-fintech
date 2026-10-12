@@ -9,7 +9,8 @@ COPY web/src/ ./src/
 RUN npm run build
 
 FROM nginx:1.30.5-alpine3.24
+RUN apk upgrade --no-cache
 COPY web/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/ /usr/share/nginx/html/
 
-EXPOSE 443
+EXPOSE 8443

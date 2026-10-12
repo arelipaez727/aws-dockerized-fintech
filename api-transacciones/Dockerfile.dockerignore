@@ -1,0 +1,6 @@
+# El contexto es la raiz del repositorio.
+**
+!api-transacciones/
+!api-transacciones/go.mod
+!api-transacciones/go.sum
+!api-transacciones/*.go

@@ -8,7 +8,7 @@ flowchart LR
 
     subgraph ec2["Instancia EC2 · Docker Compose · app_net"]
         web["web · Nginx + Web 1<br/>:8443 dentro del contenedor"]
-        web2["web2 · monitor<br/>:80 solo interno"]
+        web2["web2 · monitor<br/>:8081 solo interno"]
         clientes["api-clientes<br/>:8080 interno"]
         pagos["api-pagos<br/>:8080 interno"]
         facturas["api-facturas<br/>:8080 interno"]

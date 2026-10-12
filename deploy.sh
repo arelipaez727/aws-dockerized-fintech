@@ -18,14 +18,14 @@ if [ "${1:-}" = "--build" ]; then
         docker push "$imagen"
     }
 
-    publicar_imagen db 1.0.0 .
-    publicar_imagen api-clientes 1.0.0 .
-    publicar_imagen api-pagos 1.0.0 .
-    publicar_imagen api-facturas 1.0.1 .
-    publicar_imagen api-transacciones 1.0.0 .
-    publicar_imagen api-tarjetas 1.0.0 .
-    publicar_imagen web 1.0.1 .
-    publicar_imagen web2 1.0.0 web2
+    publicar_imagen db 1.0.2 .
+    publicar_imagen api-clientes 1.0.2 .
+    publicar_imagen api-pagos 1.0.2 .
+    publicar_imagen api-facturas 1.0.2 .
+    publicar_imagen api-transacciones 1.0.2 .
+    publicar_imagen api-tarjetas 1.0.2 .
+    publicar_imagen web 1.0.2 .
+    publicar_imagen web2 1.0.2 web2
     echo "Las ocho imagenes se publicaron en Docker Hub."
     exit 0
 fi

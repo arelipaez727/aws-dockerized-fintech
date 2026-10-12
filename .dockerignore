@@ -1,4 +1,6 @@
 .git
+.vscode
+web2/config.yaml
 **/.env
 **/.env.*
 **/node_modules

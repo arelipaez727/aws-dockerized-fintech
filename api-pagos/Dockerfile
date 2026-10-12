@@ -1,9 +1,11 @@
-FROM node:24-bookworm-slim
+FROM node:24-alpine3.24
 
 ENV NODE_ENV=production
 ENV PORT=8080
 
 WORKDIR /app
+
+RUN apk upgrade --no-cache
 
 COPY api-pagos/package.json api-pagos/package-lock.json ./
 RUN npm ci --omit=dev

@@ -1,0 +1,11 @@
+# El contexto es la raiz del repositorio.
+**
+!web/
+!web/package.json
+!web/package-lock.json
+!web/index.html
+!web/vite.config.js
+!web/src/
+!web/src/**
+!web/nginx/
+!web/nginx/nginx.conf

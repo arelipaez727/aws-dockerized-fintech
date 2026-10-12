@@ -1,0 +1,5 @@
+# El contexto es la raiz del repositorio.
+**
+!api-clientes/
+!api-clientes/requirements.txt
+!api-clientes/*.py

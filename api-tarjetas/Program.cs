@@ -1,6 +1,12 @@
 using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
+var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+if (string.IsNullOrWhiteSpace(dbUser) || string.IsNullOrWhiteSpace(dbPassword))
+{
+    throw new InvalidOperationException("Faltan DB_USER o DB_PASSWORD");
+}
 var app = builder.Build();
 
 // Esta API se conecta a "db_tarjetas", UNA de las 5 bases que viven en la MISMA instancia
@@ -10,9 +16,7 @@ string ConnectionString()
     var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
     var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
     var name = Environment.GetEnvironmentVariable("DB_NAME") ?? "db_tarjetas";
-    var user = Environment.GetEnvironmentVariable("DB_USER") ?? "appuser";
-    var pass = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "apppass";
-    return $"Server={host};Port={port};Database={name};User={user};Password={pass};";
+    return $"Server={host};Port={port};Database={name};User={dbUser};Password={dbPassword};";
 }
 
 app.MapGet("/", () => Results.Ok(new { status = "ok", servicio = "api-tarjetas" }));

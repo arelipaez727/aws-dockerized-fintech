@@ -1,0 +1,7 @@
+# El contexto es la raiz del repositorio.
+**
+!api-pagos/
+!api-pagos/package.json
+!api-pagos/package-lock.json
+!api-pagos/src/
+!api-pagos/src/**

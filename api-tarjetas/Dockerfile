@@ -12,6 +12,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine3.24
 
 WORKDIR /app
 
+RUN apk upgrade --no-cache
+
 COPY --from=build /out/ ./
 
 USER app

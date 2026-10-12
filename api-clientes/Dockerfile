@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-alpine3.24
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,9 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY api-clientes/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
-    && groupadd --system --gid 10001 app \
-    && useradd --system --uid 10001 --gid 10001 --no-create-home app
+RUN apk upgrade --no-cache \
+    && pip install --no-cache-dir -r requirements.txt \
+    && addgroup -S -g 10001 app \
+    && adduser -S -D -H -u 10001 -G app app
 
 COPY --chown=app:app api-clientes/*.py ./
 

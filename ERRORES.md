@@ -82,10 +82,19 @@
 - **Corrección:** comprobar si existe el comando y, solo si falta, instalar `curl-minimal`; comprobar también `openssl` antes de generar el certificado. No hace falta reemplazar el paquete existente con `--allowerasing`.
 - **Verificación:** tras transferir el script corregido, la preparación terminó correctamente en Amazon Linux 2023. El despliegue completo inició ocho contenedores, con MariaDB `healthy`; desde Windows, `/`, `/monitor/` y `/api/clientes` respondieron HTTP 200 por HTTPS.
 
+## E13 — Hibernate registraba la contraseña JDBC
+
+- **Síntoma observado:** al arrancar `api-facturas` con Spring Boot 4, Hibernate 7 imprimió en INFO la URL JDBC efectiva, que incluía `user` y `password`. No se reproduce aquí el valor de la contraseña.
+- **Causa:** el controlador MariaDB añadió las credenciales a la URL que Hibernate usa para mostrar la información de la conexión.
+- **Corrección:** se bajó a WARN el logger `org.hibernate.orm.connections.pooling`. Las credenciales siguen llegando solo por variables de entorno; no se incorporan a la imagen ni a Git.
+- **Verificación:** después de reconstruir y recrear el contenedor, `/api/facturas` volvió a responder HTTP 200 y los nuevos logs ya no contienen `password=`.
+- **Acción pendiente:** rotar la clave que haya aparecido en logs anteriores, coordinando el cambio del usuario en MariaDB y de los cinco `.env` de las APIs. No basta con editar solo los `.env` si el volumen de la DB ya está inicializado.
+
 
 ## Riesgos pendientes de la primera prueba en AWS
 
 - El flujo nuevo de dos comandos (`transferir` local y `deploy.sh` remoto) valida archivos y detiene la ejecución ante errores de `ssh`/`scp`. Todavía falta probarlo completo en una EC2 recién creada; la prueba exitosa de AWS fue con la versión anterior de los scripts.
 - `deploy.sh` ahora comprueba el plugin Compose independientemente de Docker y lo instala si falta. Este caso particular todavía no se probó en una EC2 que ya tuviera Docker sin Compose.
-- El enunciado dice que no se use el puerto `80`; actualmente `web2` escucha en `80` **solo dentro de `app_net`**, sin publicarlo al host. Antes de la entrega conviene confirmar con la docente si la prohibición también abarca ese puerto interno o solo la entrada pública HTTP.
+- `web2` ahora escucha en `8081` **solo dentro de `app_net`**. La imagen base de Nginx aún declara `EXPOSE 80` como metadato heredado, pero el proceso no escucha allí y Compose no publica ese puerto.
 - Los límites de memoria de los ocho servicios suman `2880M`, además de lo que necesita el sistema operativo. Una EC2 de 2 GB podría quedarse sin memoria; el tamaño de instancia y el consumo real deben comprobarse en el Sandbox.
+- El escaneo de Docker Scout del 12/10/2026 sobre las imágenes locales `1.0.2` encontró hallazgos altos/críticos residuales en las bases de MariaDB, Pagos y las dos webs. Cuatro imágenes (Clientes, Facturas, Transacciones y Tarjetas) no tenían hallazgos de esas severidades. En MariaDB, Scout sigue contando el `gosu` antiguo presente en una capa de la imagen oficial aun cuando el binario ejecutado fue sustituido por `gosu 1.19` compilado con Go 1.26.9; también señala SQLite de la base UBI9 sin parche disponible. Esto no autoriza a afirmar que la imagen esté libre de vulnerabilidades. La DB no se publica al host, pero deben seguirse las actualizaciones de MariaDB/UBI antes de una entrega o despliegue real.

@@ -1,0 +1,5 @@
+# El contexto es la raiz del repositorio.
+**
+!db/
+!db/init-scripts/
+!db/init-scripts/**

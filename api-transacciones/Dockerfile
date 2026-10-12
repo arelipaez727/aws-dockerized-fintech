@@ -1,4 +1,4 @@
-FROM golang:1.26.8-alpine3.24 AS build
+FROM golang:1.26.9-alpine3.24 AS build
 
 WORKDIR /src
 
@@ -10,7 +10,8 @@ RUN CGO_ENABLED=0 go build -trimpath -o /api-transacciones .
 
 FROM alpine:3.24
 
-RUN apk add --no-cache ca-certificates \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache ca-certificates \
     && addgroup -S -g 10001 app \
     && adduser -S -D -H -u 10001 -G app app
 
