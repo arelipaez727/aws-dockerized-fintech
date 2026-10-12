@@ -1,22 +1,29 @@
 using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
-var dbUser = Environment.GetEnvironmentVariable("DB_USER");
-var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
-if (string.IsNullOrWhiteSpace(dbUser) || string.IsNullOrWhiteSpace(dbPassword))
-{
-    throw new InvalidOperationException("Faltan DB_USER o DB_PASSWORD");
-}
+var connectionString = BuildConnectionString();
 var app = builder.Build();
 
 // Esta API se conecta a "db_tarjetas", UNA de las 5 bases que viven en la MISMA instancia
-// compartida de MariaDB (ver tp-2026/db).
-string ConnectionString()
+// compartida de MariaDB (ver tp-2026/db). No se usan credenciales de respaldo.
+string BuildConnectionString()
 {
-    var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-    var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "3306";
-    var name = Environment.GetEnvironmentVariable("DB_NAME") ?? "db_tarjetas";
-    return $"Server={host};Port={port};Database={name};User={dbUser};Password={dbPassword};";
+    var host = RequiredEnvironmentVariable("DB_HOST");
+    var port = RequiredEnvironmentVariable("DB_PORT");
+    var name = RequiredEnvironmentVariable("DB_NAME");
+    var user = RequiredEnvironmentVariable("DB_USER");
+    var pass = RequiredEnvironmentVariable("DB_PASSWORD");
+    return $"Server={host};Port={port};Database={name};User={user};Password={pass};";
+}
+
+string RequiredEnvironmentVariable(string name)
+{
+    var value = Environment.GetEnvironmentVariable(name);
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new InvalidOperationException($"Falta la variable de entorno obligatoria {name}");
+    }
+    return value;
 }
 
 app.MapGet("/", () => Results.Ok(new { status = "ok", servicio = "api-tarjetas" }));
@@ -25,7 +32,7 @@ app.MapGet("/", () => Results.Ok(new { status = "ok", servicio = "api-tarjetas" 
 app.MapGet("/tarjetas", async () =>
 {
     var tarjetas = new List<Tarjeta>();
-    await using var conn = new MySqlConnection(ConnectionString());
+    await using var conn = new MySqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = new MySqlCommand("SELECT id, alias, titular, tipo, limite FROM tarjetas", conn);
     await using var reader = await cmd.ExecuteReaderAsync();
@@ -39,7 +46,7 @@ app.MapGet("/tarjetas", async () =>
 // GET /tarjetas/{id} -> obtener una
 app.MapGet("/tarjetas/{id:int}", async (int id) =>
 {
-    await using var conn = new MySqlConnection(ConnectionString());
+    await using var conn = new MySqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = new MySqlCommand("SELECT id, alias, titular, tipo, limite FROM tarjetas WHERE id = @id", conn);
     cmd.Parameters.AddWithValue("@id", id);
@@ -54,7 +61,7 @@ app.MapGet("/tarjetas/{id:int}", async (int id) =>
 // POST /tarjetas -> crear (alta)
 app.MapPost("/tarjetas", async (Tarjeta nueva) =>
 {
-    await using var conn = new MySqlConnection(ConnectionString());
+    await using var conn = new MySqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = new MySqlCommand(
         "INSERT INTO tarjetas (alias, titular, tipo, limite) VALUES (@alias, @titular, @tipo, @limite); SELECT LAST_INSERT_ID();",
@@ -71,7 +78,7 @@ app.MapPost("/tarjetas", async (Tarjeta nueva) =>
 // PUT /tarjetas/{id} -> modificar
 app.MapPut("/tarjetas/{id:int}", async (int id, Tarjeta cambios) =>
 {
-    await using var conn = new MySqlConnection(ConnectionString());
+    await using var conn = new MySqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = new MySqlCommand(
         "UPDATE tarjetas SET alias=@alias, titular=@titular, tipo=@tipo, limite=@limite WHERE id=@id",
@@ -90,7 +97,7 @@ app.MapPut("/tarjetas/{id:int}", async (int id, Tarjeta cambios) =>
 // DELETE /tarjetas/{id} -> baja
 app.MapDelete("/tarjetas/{id:int}", async (int id) =>
 {
-    await using var conn = new MySqlConnection(ConnectionString());
+    await using var conn = new MySqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = new MySqlCommand("DELETE FROM tarjetas WHERE id=@id", conn);
     cmd.Parameters.AddWithValue("@id", id);

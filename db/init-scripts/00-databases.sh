@@ -1,10 +1,10 @@
 #!/bin/bash
 # Los microservicios de este TP comparten UNA SOLA instancia de MariaDB (un solo contenedor),
-# pero cada uno tiene su PROPIA base de datos dentro de esa instancia (aislamiento logico, no
-# fisico). La imagen oficial de mariadb solo crea automaticamente la base de MYSQL_DATABASE y le
+# pero cada uno tiene su PROPIA base de datos dentro de esa instancia (aislamiento lógico, no
+# físico). La imagen oficial de MariaDB solo crea automáticamente la base de MYSQL_DATABASE y le
 # da permisos a MYSQL_USER sobre ella; este script (se ejecuta con bash, no con el cliente mysql,
 # por eso puede leer variables de entorno) crea las 4 bases restantes y extiende los permisos del
-# mismo usuario de aplicacion a todas.
+# mismo usuario de aplicación a todas.
 set -e
 
 mysql -u root -p"$MYSQL_ROOT_PASSWORD" <<-EOSQL
