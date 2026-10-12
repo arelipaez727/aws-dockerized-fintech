@@ -91,7 +91,15 @@
 - **Acción pendiente:** rotar la clave que haya aparecido en logs anteriores, coordinando el cambio del usuario en MariaDB y de los cinco `.env` de las APIs. No basta con editar solo los `.env` si el volumen de la DB ya está inicializado.
 
 
+## E14 — Marcadores de conflicto incluidos en `main` en la API de pagos
+
+- **Hallazgo:** después de actualizar `main`, `api-pagos/src/db.js` contenía `<<<<<<< HEAD`, `=======` y `>>>>>>> lu` dentro de la configuración de MariaDB. Además, una de las alternativas llamaba a `requiredEnv`, que ya no existía en el archivo.
+- **Causa:** el conflicto de un merge quedó incorporado como texto en el código. La imagen podría construirse porque Docker no interpreta JavaScript durante el build, pero la API fallaría al iniciar.
+- **Corrección:** se conservó la variante que exige `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`, coherente con el cambio de seguridad del equipo; se eliminaron los marcadores y la variante anterior.
+- **Verificación:** `node --check api-pagos/src/db.js` pasó y la búsqueda de marcadores de conflicto no encontró otros archivos. Falta comprobar el arranque de la imagen reconstruida y el endpoint `/api/pagos` antes del despliegue en AWS.
+
 ## Riesgos pendientes de la primera prueba en AWS
+
 
 - El flujo nuevo de dos comandos (`transferir` local y `deploy.sh` remoto) valida archivos y detiene la ejecución ante errores de `ssh`/`scp`. Todavía falta probarlo completo en una EC2 recién creada; la prueba exitosa de AWS fue con la versión anterior de los scripts.
 - `deploy.sh` ahora comprueba el plugin Compose independientemente de Docker y lo instala si falta. Este caso particular todavía no se probó en una EC2 que ya tuviera Docker sin Compose.

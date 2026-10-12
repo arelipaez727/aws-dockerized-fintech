@@ -3,33 +3,44 @@ param (
     [string]$DockerUser
 )
 
-Write-Host "=== Logueando en Docker Hub ===" -ForegroundColor Cyan
-docker login
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Fallo el inicio de sesión en Docker Hub." -ForegroundColor Red
-    exit $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+
+function Invoke-Docker {
+    param([string[]]$DockerArgs)
+
+    & docker @DockerArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "Fallo docker $($DockerArgs -join ' ') (codigo $LASTEXITCODE)."
+    }
 }
 
+Write-Host "=== Logueando en Docker Hub ===" -ForegroundColor Cyan
+Invoke-Docker -DockerArgs @('login')
+
+$servicios = @(
+    @{ Nombre = 'db'; Contexto = '.' }
+    @{ Nombre = 'api-clientes'; Contexto = '.' }
+    @{ Nombre = 'api-pagos'; Contexto = '.' }
+    @{ Nombre = 'api-facturas'; Contexto = '.' }
+    @{ Nombre = 'api-transacciones'; Contexto = '.' }
+    @{ Nombre = 'api-tarjetas'; Contexto = '.' }
+    @{ Nombre = 'web'; Contexto = '.' }
+    @{ Nombre = 'web2'; Contexto = 'web2' }
+)
+
 Write-Host "=== Construyendo imágenes ===" -ForegroundColor Cyan
-docker build -t "$DockerUser/fintech-nova-db:1.0.2" -f db/Dockerfile .
-docker build -t "$DockerUser/fintech-nova-api-clientes:1.0.2" -f api-clientes/Dockerfile .
-docker build -t "$DockerUser/fintech-nova-api-pagos:1.0.2" -f api-pagos/Dockerfile .
-docker build -t "$DockerUser/fintech-nova-api-facturas:1.0.2" -f api-facturas/Dockerfile .
-docker build -t "$DockerUser/fintech-nova-api-transacciones:1.0.2" -f api-transacciones/Dockerfile .
-docker build -t "$DockerUser/fintech-nova-api-tarjetas:1.0.2" -f api-tarjetas/Dockerfile .
-docker build -t "$DockerUser/fintech-nova-web:1.0.2" -f web/Dockerfile .
-docker build -t "$DockerUser/fintech-nova-web2:1.0.2" -f web2/Dockerfile web2
+foreach ($servicio in $servicios) {
+    $imagen = "$DockerUser/fintech-nova-$($servicio.Nombre):1.0.2"
+    Write-Host "Construyendo $imagen" -ForegroundColor Yellow
+    Invoke-Docker -DockerArgs @('build', '-t', $imagen, '-f', "$($servicio.Nombre)/Dockerfile", $servicio.Contexto)
+}
 
 Write-Host "=== Subiendo imágenes a Docker Hub ===" -ForegroundColor Cyan
-docker push "$DockerUser/fintech-nova-db:1.0.2"
-docker push "$DockerUser/fintech-nova-api-clientes:1.0.2"
-docker push "$DockerUser/fintech-nova-api-pagos:1.0.2"
-docker push "$DockerUser/fintech-nova-api-facturas:1.0.2"
-docker push "$DockerUser/fintech-nova-api-transacciones:1.0.2"
-docker push "$DockerUser/fintech-nova-api-tarjetas:1.0.2"
-docker push "$DockerUser/fintech-nova-web:1.0.2"
-docker push "$DockerUser/fintech-nova-web2:1.0.2"
+foreach ($servicio in $servicios) {
+    $imagen = "$DockerUser/fintech-nova-$($servicio.Nombre):1.0.2"
+    Write-Host "Subiendo $imagen" -ForegroundColor Yellow
+    Invoke-Docker -DockerArgs @('push', $imagen)
+}
 
-Write-Host "=== Proceso finalizado ===" -ForegroundColor Green
-Write-Host "Recuerda actualizar tu docker-compose.yml con las imágenes, ejemplo:"
-Write-Host "image: $DockerUser/fintech-nova-db:1.0.2" -ForegroundColor Yellow
+Write-Host "=== Ocho imágenes publicadas correctamente ===" -ForegroundColor Green
+Write-Host "Comprueba que docker-compose.yml use el mismo namespace y tag 1.0.2."

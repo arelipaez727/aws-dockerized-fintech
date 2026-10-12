@@ -16,19 +16,11 @@ if (!Number.isInteger(dbPort) || dbPort < 1 || dbPort > 65535) {
 }
 
 const pool = mysql.createPool({
-<<<<<<< HEAD
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
-  database: process.env.DB_NAME || 'db_pagos',
-  user: requiredEnv('DB_USER'),
-  password: requiredEnv('DB_PASSWORD'),
-=======
   host: requireEnv('DB_HOST'),
   port: dbPort,
   database: requireEnv('DB_NAME'),
   user: requireEnv('DB_USER'),
   password: requireEnv('DB_PASSWORD'),
->>>>>>> lu
   waitForConnections: true,
   connectionLimit: 5,
 });
