@@ -6,12 +6,21 @@ import os
 load_dotenv()
 mysql = MySQL()
 
+
+def require_env(name):
+	value = os.environ.get(name)
+	if value is None or not value.strip():
+		raise RuntimeError(f'Falta la variable de entorno obligatoria {name}')
+	return value
+
+
 # Esta API se conecta a "db_clientes", UNA de las 5 bases que viven en la MISMA instancia
-# compartida de MariaDB (ver tp-2026/db). Los valores "or ..." son solo fallback para local.
-app.config['MYSQL_DATABASE_USER'] = os.environ.get('DB_USER') or 'testuser'
-app.config['MYSQL_DATABASE_PASSWORD'] = os.environ.get('DB_PASSWORD') or 'testuserpass'
-app.config['MYSQL_DATABASE_DB'] = os.environ.get('DB_NAME') or 'db_clientes'
-app.config['MYSQL_DATABASE_HOST'] = os.environ.get('DB_HOST') or 'localhost'
-app.config['MYSQL_DATABASE_PORT'] = int(os.environ.get('DB_PORT') or 3306)
+# compartida de MariaDB (ver tp-2026/db). La aplicación no incluye credenciales de respaldo:
+# si falta una variable obligatoria, se detiene durante el inicio.
+app.config['MYSQL_DATABASE_USER'] = require_env('DB_USER')
+app.config['MYSQL_DATABASE_PASSWORD'] = require_env('DB_PASSWORD')
+app.config['MYSQL_DATABASE_DB'] = require_env('DB_NAME')
+app.config['MYSQL_DATABASE_HOST'] = require_env('DB_HOST')
+app.config['MYSQL_DATABASE_PORT'] = int(require_env('DB_PORT'))
 
 mysql.init_app(app)
