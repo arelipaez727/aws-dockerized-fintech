@@ -149,6 +149,8 @@ else
 fi
 
 echo "=== [4/5] Descargando y levantando las ocho imagenes ==="
+chmod 644 web2/config.yaml
+
 sudo docker compose config --quiet
 sudo docker compose pull
 sudo docker compose up -d
