@@ -62,8 +62,9 @@ for archivo in "${archivos[@]}"; do
 done
 
 echo "[1/3] Creando carpetas en $DESTINO"
+# Los .env contienen secretos; config.yaml solo describe rutas y debe ser legible por el usuario app de Web2.
 ssh -i "$SSH_KEY" "$DESTINO" \
-    'umask 077; mkdir -p db api-clientes api-pagos api-facturas api-transacciones api-tarjetas web2 certs; touch db/.env api-clientes/.env api-pagos/.env api-facturas/.env api-transacciones/.env api-tarjetas/.env web2/config.yaml; chmod 600 db/.env api-clientes/.env api-pagos/.env api-facturas/.env api-transacciones/.env api-tarjetas/.env web2/config.yaml'
+    'umask 077; mkdir -p db api-clientes api-pagos api-facturas api-transacciones api-tarjetas web2 certs; touch db/.env api-clientes/.env api-pagos/.env api-facturas/.env api-transacciones/.env api-tarjetas/.env web2/config.yaml; chmod 600 db/.env api-clientes/.env api-pagos/.env api-facturas/.env api-transacciones/.env api-tarjetas/.env; chmod 644 web2/config.yaml'
 
 echo "[2/3] Transfiriendo Compose, deploy y configuraciones privadas"
 scp -i "$SSH_KEY" deploy.sh docker-compose.yml "${DESTINO}:~/"
@@ -73,6 +74,6 @@ done
 
 echo "[3/3] Guardando la IP publica y ajustando permisos en EC2"
 ssh -i "$SSH_KEY" "$DESTINO" \
-    "umask 077; printf '%s\\n' '$EC2_IP' > .deploy-public-ip; chmod 600 .deploy-public-ip db/.env api-clientes/.env api-pagos/.env api-facturas/.env api-transacciones/.env api-tarjetas/.env web2/config.yaml"
+    "umask 077; printf '%s\\n' '$EC2_IP' > .deploy-public-ip; chmod 600 .deploy-public-ip db/.env api-clientes/.env api-pagos/.env api-facturas/.env api-transacciones/.env api-tarjetas/.env; chmod 644 web2/config.yaml"
 
 echo "Transferencia completa. En EC2: cd ~ && bash ./deploy.sh"

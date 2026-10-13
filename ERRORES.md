@@ -98,6 +98,13 @@
 - **Corrección:** se conservó la variante que exige `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`, coherente con el cambio de seguridad del equipo; se eliminaron los marcadores y la variante anterior.
 - **Verificación:** `node --check api-pagos/src/db.js` pasó y la búsqueda de marcadores de conflicto no encontró otros archivos. Falta comprobar el arranque de la imagen reconstruida y el endpoint `/api/pagos` antes del despliegue en AWS.
 
+## E15 — Web2 no podía leer su configuración en EC2
+
+- **Síntoma observado por el grupo:** Web2 necesitó un ajuste de permisos para funcionar en la nueva prueba de AWS.
+- **Causa:** `transferir.sh` y `transferir.ps1` dejaban `web2/config.yaml` con modo `600`, propiedad de `ec2-user`; la imagen de Web2 ahora ejecuta Nginx y su `entrypoint.sh` como el usuario `app` (UID 10001). El montaje `:ro` evita escrituras, pero no concede lectura.
+- **Corrección:** `deploy.sh` aplica `chmod 644` antes de levantar el stack. Los dos scripts de transferencia también separan `config.yaml` de los `.env`: el YAML queda en `644`, mientras que las credenciales y `.deploy-public-ip` permanecen en `600`.
+- **Verificación pendiente:** ejecutar de nuevo el flujo `transferir` → `deploy` en una EC2 limpia y comprobar que Web2 inicia y `/monitor/` responde sin ajustes manuales de permisos.
+
 ## Riesgos pendientes de la primera prueba en AWS
 
 
