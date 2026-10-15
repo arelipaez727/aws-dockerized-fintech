@@ -176,33 +176,37 @@ los scripts SQL de inicialización, por lo que no se copian por separado a la EC
 
 ## Evidencia de Funcionamiento en AWS EC2
 
-Durante la sesión del Sandbox de AWS Academy (IP pública `32.194.87.233`), se validó el funcionamiento de punta a punta tanto por consola como desde el navegador web:
+Durante la sesión del Sandbox de AWS Academy (IP pública `52.200.213.71`), se validó el funcionamiento de punta a punta tanto por consola como desde el navegador web:
 
 ### 1. Comprobación de Endpoints Públicos con `curl`
 
 Se consultaron las rutas públicas expuestas por el Nginx de `web` a través de HTTPS (`-k` por certificado autofirmado), obteniendo código `HTTP 200` y las respuestas JSON correspondientes de cada microservicio:
 
 ```bash
-curl -k https://32.194.87.233/
-curl -k https://32.194.87.233/api/clientes
-curl -k https://32.194.87.233/api/pagos
-curl -k https://32.194.87.233/api/facturas
-curl -k https://32.194.87.233/api/transacciones
-curl -k https://32.194.87.233/api/tarjetas
-curl -k https://32.194.87.233/monitor/
+curl -k https://52.200.213.71/
+curl -k https://52.200.213.71/api/clientes
+curl -k https://52.200.213.71/api/pagos
+curl -k https://52.200.213.71/api/facturas
+curl -k https://52.200.213.71/api/transacciones
+curl -k https://52.200.213.71/api/tarjetas
+curl -k https://52.200.213.71/monitor/
 ```
 
 ![Pruebas curl contra los endpoints públicos](docs/img/08-aws-curl-validacion.png)
 
+![Respuestas JSON de Clientes, Pagos y Facturas](docs/img/08a-aws-curl-apis.png)
+
+![Respuestas JSON de Transacciones y Tarjetas](docs/img/08b-aws-curl-apis.png)
+
 ### 2. Aplicación Principal (`web`) y ABM de las 5 Entidades
 
-Al acceder mediante `https://32.194.87.233/` (confirmando previamente que `http://` no responde al estar el puerto 80 cerrado), se acepta la advertencia del certificado autofirmado y se accede al panel operativo de FinTech Nova, donde se probaron las operaciones de alta, lectura, modificación y baja sobre Clientes, Pagos (con conversión a USD), Facturas, Transacciones (con geolocalización de IP) y Tarjetas.
+Al acceder mediante `https://52.200.213.71/` (con el puerto 80 cerrado en el Security Group), se acepta la advertencia del certificado autofirmado y se accede al panel operativo de FinTech Nova, que ofrece operaciones de alta, lectura, modificación y baja sobre Clientes, Pagos (con conversión a USD), Facturas, Transacciones (con geolocalización de IP) y Tarjetas.
 
 ![Advertencia de certificado autofirmado y ABM en Web 1](docs/img/09-aws-navegador-web1.png)
 
 ### 3. Segundo Frontend (`web2` - Monitor)
 
-En `https://32.194.87.233/monitor/` se verificó el estado operativo y la latencia de los microservicios, así como la visualización interactiva de la arquitectura interna.
+En `https://52.200.213.71/monitor/` se verificó el estado operativo y la latencia de los microservicios, así como la visualización interactiva de la arquitectura interna.
 
 ![Monitor Web 2](docs/img/10-aws-navegador-web2.png)
 
