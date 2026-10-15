@@ -1,4 +1,4 @@
-# Configuración de AWS EC2 (`AWS_EC2.md`)
+# Configuración de AWS EC2
 
 ## 1. Datos de la Instancia, Sistema Operativo y Red (VPC / Subred)
 
