@@ -25,17 +25,17 @@ No deben incluirse valores reales de credenciales, claves, certificados ni archi
 
 ## Exposición de red y AWS
 
-- Solo `web` publica un puerto del host. Las cinco APIs (`8080`), MariaDB (`3306`) y `web2` (`80`) son accesibles únicamente desde la red Docker `app_net`.
+- Solo `web` publica un puerto del host. Las cinco APIs (`8080`), MariaDB (`3306`) y `web2` (`8081`) son accesibles únicamente desde la red Docker `app_net`.
 - NGINX expone `/`, `/monitor/` y las rutas `/api/*`; también redirige `/web2` hacia `/monitor/`. No hay un listener HTTP público ni una redirección desde el puerto 80.
-- **Reglas esperadas del Security Group, pendientes de verificación en AWS:** HTTPS `443` desde Internet; SSH `22` limitado a la IP autorizada; `80`, `3306` y `8080` cerrados al público. Los scripts no crean ni verifican estas reglas. Registrarlas en `AWS_EC2.md` y respaldarlas con evidencia de la consola de AWS o comandos de AWS CLI antes de afirmar que están aplicadas.
+- En la sesión de AWS documentada en `AWS_EC2.md`, el Security Group permitió HTTPS `443` desde Internet y limitó SSH `22` a la IP autorizada; no se abrió `80`, `3306`, `8080` ni `8081`. Los scripts no crean ni verifican estas reglas: hay que comprobarlas de nuevo al lanzar otra instancia.
 - `api-pagos` consulta `open.er-api.com` y `api-transacciones` consulta `ipapi.co`, ambas por HTTPS y sin API key. Las llamadas tienen un tiempo máximo de cinco segundos y sus fallos no impiden guardar el registro, aunque generan una dependencia de salida hacia servicios de terceros.
 
 ## Imágenes y ejecución de contenedores
 
-- Las cinco APIs se ejecutan con usuarios no root (`app` o `node`). `web`, `web2` y la imagen personalizada de MariaDB no declaran un usuario alternativo en sus Dockerfiles y conservan el comportamiento de sus imágenes base.
-- Las imágenes base son imágenes publicadas por los proyectos o proveedores correspondientes: MariaDB, Python, Node, Maven/Eclipse Temurin, Go/Alpine, Microsoft .NET y NGINX. Java, Go, .NET y `web` usan compilaciones multietapa, por lo que sus herramientas de compilación no quedan en las imágenes finales. Python y Node usan imágenes de runtime.
+- Las cinco APIs y `web2` se ejecutan con usuarios no root (`app` o `node`). `web` y la imagen personalizada de MariaDB no declaran un usuario alternativo en sus Dockerfiles y conservan el comportamiento de sus imágenes base.
+- Las imágenes base son imágenes publicadas por los proyectos o proveedores correspondientes: MariaDB, Python, Node, Maven/Eclipse Temurin, Go/Alpine, Microsoft .NET y NGINX. Java, Go, .NET, `web` y `web2` usan compilaciones multietapa, por lo que sus herramientas de compilación no quedan en las imágenes finales. Python y Node usan imágenes de runtime.
 - Compose fija etiquetas explícitas para las ocho imágenes publicadas en Docker Hub. Esto mejora la repetibilidad respecto de `latest`, pero las etiquetas no son inmutables como un digest y el repositorio no aporta firma ni attestations de las imágenes.
-- `web2` parte de `nginx:alpine` sin fijar una versión concreta. Las demás imágenes base tienen una versión declarada, aunque tampoco están fijadas por digest.
+- `web2` usa `nginx:1.30.5-alpine3.24` en su etapa final y escucha en `8081`; la imagen base conserva `EXPOSE 80` como metadato, pero Compose no publica ese puerto. Las imágenes base usan etiquetas de versión, no digests inmutables.
 - Compose establece límites de CPU y memoria, reinicio automático y un healthcheck para MariaDB. Estos controles mejoran disponibilidad y contención de recursos, pero no sustituyen autenticación, autorización ni hardening del runtime.
 - `deploy.sh` valida la sintaxis efectiva con `docker compose config --quiet`, descarga las imágenes, inicia el stack y espera HTTP 200 en las siete rutas HTTPS antes de informar éxito. La verificación usa `--insecure` porque el certificado es autofirmado.
 
@@ -53,14 +53,14 @@ Se usa [OWASP Docker Top 10](https://owasp.org/projects/docker-top-10) como list
 
 | Control | Aplicación observada y estado |
 | --- | --- |
-| D01 — Asignación segura de usuarios | Las cinco APIs configuran un usuario no root. `web`, `web2` y MariaDB no declaran un usuario alternativo en sus Dockerfiles; revisar si es compatible endurecerlos. |
-| D02 — Estrategia de parches | Se declaran versiones de imágenes base, pero `web2` usa la etiqueta flotante `nginx:alpine` y no se documenta un proceso periódico de actualización o análisis de vulnerabilidades. |
-| D03 — Separación de red y firewall | Los servicios comparten `app_net` y solo `web` publica `443`. Las reglas reales del Security Group todavía deben verificarse en AWS. |
+| D01 — Asignación segura de usuarios | Las cinco APIs y `web2` configuran un usuario no root. `web` y MariaDB conservan el usuario definido por su imagen base; revisar si es compatible endurecerlos. |
+| D02 — Estrategia de parches | Se usan etiquetas de versión y se hizo una revisión puntual con Docker Scout, pero no hay un proceso periódico de actualización y escaneo. |
+| D03 — Separación de red y firewall | Los servicios comparten `app_net` y solo `web` publica `443`. Las reglas del Security Group de la sesión documentada se registran en `AWS_EC2.md`; deben revisarse en cada nueva sesión. |
 | D04 — Valores seguros y hardening | NGINX usa TLS 1.2/1.3 y `server_tokens off`. No se documentan autenticación, autorización, límites de solicitudes ni encabezados como HSTS y CSP. |
 | D05 — Contexto de seguridad | Las bases están separadas por servicio, pero la cuenta de aplicación tiene privilegios sobre las cinco. No se configura filesystem de solo lectura ni reducción de capacidades Linux. |
 | D06 — Protección de secretos | Se usan `env_file`, reglas de exclusión y transferencia SCP/SSH con permisos `600`. Las APIs no contienen credenciales de respaldo y fallan al iniciar si falta una variable obligatoria de conexión. |
 | D07 — Protección de recursos | Compose define límites de CPU y memoria; MariaDB también tiene healthcheck. |
-| D08 — Integridad y procedencia de imágenes | Se usan imágenes base de sus proveedores y etiquetas de versión. No se documentan análisis, firma ni verificación criptográfica de las imágenes publicadas. |
+| D08 — Integridad y procedencia de imágenes | Se usan imágenes base de sus proveedores y etiquetas de versión. Hubo un análisis puntual de vulnerabilidades, pero no se firman ni verifican criptográficamente las imágenes publicadas. |
 | D09 — Paradigma inmutable | Las imágenes se versionan con etiquetas y los datos de MariaDB persisten en un volumen. No se fijan imágenes por digest ni se configura filesystem de contenedor de solo lectura. |
 | D10 — Registro de actividad | Hay logs de aplicación y errores, pero no se documentan políticas de retención, centralización o revisión periódica. |
 
@@ -75,8 +75,8 @@ Se usa [OWASP Docker Top 10](https://owasp.org/projects/docker-top-10) como list
 ## Pendientes recomendados
 
 - Incorporar autenticación y autorización antes de utilizar datos reales o exponer los ABM públicamente.
-- Ejecutar y conservar resultados de análisis de dependencias, imágenes y configuración (por ejemplo, Trivy y Checkov). El repositorio no contiene reportes de estos controles.
+- Repetir y conservar resultados de análisis de dependencias, imágenes y configuración (por ejemplo, Docker Scout, Trivy y Checkov). La revisión puntual del 12/10/2026 con Docker Scout encontró hallazgos altos o críticos residuales en MariaDB, Pagos y las dos webs; no equivale a un escaneo continuo ni a declarar las imágenes libres de vulnerabilidades.
 - Fijar las imágenes base y, para despliegues controlados, las imágenes publicadas mediante digest; agregar generación de SBOM y firma de imágenes.
 - Ejecutar contenedores con filesystem de solo lectura y reducir capacidades Linux cuando la compatibilidad de cada servicio esté comprobada.
 - Agregar encabezados de seguridad, límites de solicitudes, validación consistente y una política de logs.
-- Verificar externamente las reglas efectivas del Security Group, la visibilidad de los repositorios en Docker Hub y la prueba integral del flujo actual en una EC2 nueva.
+- Revalidar las reglas efectivas del Security Group y el flujo completo de despliegue en cada nueva sesión del Sandbox; sus IP, llaves e instancia cambian.

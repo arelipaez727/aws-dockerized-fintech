@@ -5,7 +5,7 @@
 
 ## Integrantes del Grupo
 
-La autoría del trabajo se encuentra visible en el pie de página de la interfaz desplegada (tanto en el panel de operaciones principal como en el monitor de servicios):
+La autoría del trabajo se detalla aquí y en la sección «Equipo» del segundo frontend (`web2`). El panel principal identifica al Grupo 10.
 
 - **Arnedo, Jesús**
 - **Mendez, Octavio**
@@ -34,7 +34,7 @@ Las principales decisiones de diseño adoptadas por el equipo fueron:
 6. **Límites de recursos y resiliencia:**
    Todos los contenedores definen `restart: always` y límites explícitos de CPU y memoria (`deploy.resources.limits`) dimensionados para ejecutarse simultáneamente en una instancia `t3.medium`, ajustando además el heap de la JVM en `api-facturas` (`-XX:MaxRAMPercentage=60.0`). Las llamadas a APIs externas (`api-pagos` y `api-transacciones`) toleran fallos o límites de tasa (*Rate Limit*) guardando la entidad aún sin el dato enriquecido.
 7. **Segundo Frontend (`web2` - Monitor de Servicios):**
-   Se desarrolló un panel de monitoreo accesible bajo `/monitor/` que verifica periódicamente el estado y la latencia de los endpoints públicos, representa gráficamente el flujo de red interno y envía alertas automáticas a un grupo de Telegram ante la caída o recuperación de cualquier microservicio.
+   Se desarrolló un panel de monitoreo accesible bajo `/monitor/` que verifica periódicamente el estado y la latencia de los endpoints públicos y representa gráficamente el flujo de red interno.
 
 ---
 
@@ -183,13 +183,13 @@ Durante la sesión del Sandbox de AWS Academy (IP pública `32.194.87.233`), se 
 Se consultaron las rutas públicas expuestas por el Nginx de `web` a través de HTTPS (`-k` por certificado autofirmado), obteniendo código `HTTP 200` y las respuestas JSON correspondientes de cada microservicio:
 
 ```bash
-curl -k [https://32.194.87.233/](https://32.194.87.233/)
-curl -k [https://32.194.87.233/api/clientes](https://32.194.87.233/api/clientes)
-curl -k [https://32.194.87.233/api/pagos](https://32.194.87.233/api/pagos)
-curl -k [https://32.194.87.233/api/facturas](https://32.194.87.233/api/facturas)
-curl -k [https://32.194.87.233/api/transacciones](https://32.194.87.233/api/transacciones)
-curl -k [https://32.194.87.233/api/tarjetas](https://32.194.87.233/api/tarjetas)
-curl -k [https://32.194.87.233/monitor/](https://32.194.87.233/monitor/)
+curl -k https://32.194.87.233/
+curl -k https://32.194.87.233/api/clientes
+curl -k https://32.194.87.233/api/pagos
+curl -k https://32.194.87.233/api/facturas
+curl -k https://32.194.87.233/api/transacciones
+curl -k https://32.194.87.233/api/tarjetas
+curl -k https://32.194.87.233/monitor/
 ```
 
 ![Pruebas curl contra los endpoints públicos](docs/img/08-aws-curl-validacion.png)
@@ -200,11 +200,11 @@ Al acceder mediante `https://32.194.87.233/` (confirmando previamente que `http:
 
 ![Advertencia de certificado autofirmado y ABM en Web 1](docs/img/09-aws-navegador-web1.png)
 
-### 3. Segundo Frontend (`web2` - Monitor) y Alertas por Telegram
+### 3. Segundo Frontend (`web2` - Monitor)
 
-En `https://32.194.87.233/monitor/` se verificó el estado operativo y la latencia de los microservicios, la visualización interactiva de la arquitectura interna y el envío de notificaciones en tiempo real al grupo de Telegram (`MonitorGrupo10DevOps`) al simular la caída y posterior recuperación de un contenedor.
+En `https://32.194.87.233/monitor/` se verificó el estado operativo y la latencia de los microservicios, así como la visualización interactiva de la arquitectura interna.
 
-![Monitor Web 2 y notificaciones por Telegram](docs/img/10-aws-navegador-web2.png)
+![Monitor Web 2](docs/img/10-aws-navegador-web2.png)
 
 ---
 
@@ -223,4 +223,3 @@ En `https://32.194.87.233/monitor/` se verificó el estado operativo y la latenc
 - [**AWS_EC2.md**](AWS_EC2.md): Detalle de la instancia EC2, VPC, Subred, reglas del Security Group, acceso SSH y aprovisionamiento.
 - [**SEGURIDAD.md**](SEGURIDAD.md): Gestión de secretos, generación de certificados TLS en runtime y buenas prácticas aplicadas en los contenedores.
 - [**ERRORES.md**](ERRORES.md): Glosario de los fallos encontrados durante el desarrollo y el despliegue, junto con sus causas y soluciones.
-- [**GUIA-INICIO-LOCAL.md**](GUIA-INICIO-LOCAL.md): Instructivo paso a paso para levantar y probar el entorno localmente.

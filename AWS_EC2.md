@@ -42,7 +42,7 @@ La instancia utiliza el Security Group **`launch-wizard-1`** (`sg-0e63e479a589b5
 
 | Tipo | Protocolo | Puerto | Destino (Destination) | Descripción |
 | :--- | :--- | :--- | :--- | :--- |
-| All traffic | All | All | `0.0.0.0/0` | Permite descargar paquetes del sistema e imágenes de Docker Hub, y realizar llamadas salientes HTTPS hacia las APIs externas (tipo de cambio, geolocalización y notificaciones de Telegram). |
+| All traffic | All | All | `0.0.0.0/0` | Permite descargar paquetes del sistema e imágenes de Docker Hub y consultar por HTTPS las APIs externas de tipo de cambio y geolocalización. |
 
 ![Configuración del Security Group durante la creación](docs/img/aws-sg-creacion.png)
 

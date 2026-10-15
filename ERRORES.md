@@ -69,20 +69,14 @@
 - **Causa:** Compose busca el archivo de configuración en el directorio actual (o hay que indicarlo explícitamente).
 - **Corrección:** ejecutar los comandos desde la raíz del repositorio, donde está `docker-compose.yml`.
 
-## E11 — Se pegó un comando Bash multilínea en PowerShell
-
-- **Síntoma observado:** PowerShell marcó `Falta la expresión después del operador unario "--"` al pegar `docker run` con barras invertidas (`\`) al final de cada línea.
-- **Causa:** `\` continúa líneas en Bash, no en PowerShell.
-- **Corrección:** usar una sola línea en PowerShell, su carácter de continuación propio o ejecutar el comando en WSL. Docker Desktop puede atender comandos desde ambos entornos si WSL tiene la integración habilitada.
-
-## E12 — `curl` entró en conflicto con `curl-minimal` en Amazon Linux 2023
+## E11 — `curl` entró en conflicto con `curl-minimal` en Amazon Linux 2023
 
 - **Síntoma observado:** `bash ./deploy.sh --preparar` terminó en el paso 1 con `problem with installed package curl-minimal` al ejecutar `yum install -y curl`.
 - **Causa:** la AMI de Amazon Linux 2023 ya trae `curl-minimal`, que proporciona el comando `curl`. El paquete `curl` completo entra en conflicto con él. `set -e` detuvo el script antes de instalar Docker.
 - **Corrección:** comprobar si existe el comando y, solo si falta, instalar `curl-minimal`; comprobar también `openssl` antes de generar el certificado. No hace falta reemplazar el paquete existente con `--allowerasing`.
 - **Verificación:** tras transferir el script corregido, la preparación terminó correctamente en Amazon Linux 2023. El despliegue completo inició ocho contenedores, con MariaDB `healthy`; desde Windows, `/`, `/monitor/` y `/api/clientes` respondieron HTTP 200 por HTTPS.
 
-## E13 — Hibernate registraba la contraseña JDBC
+## E12 — Hibernate registraba la contraseña JDBC
 
 - **Síntoma observado:** al arrancar `api-facturas` con Spring Boot 4, Hibernate 7 imprimió en INFO la URL JDBC efectiva, que incluía `user` y `password`. No se reproduce aquí el valor de la contraseña.
 - **Causa:** el controlador MariaDB añadió las credenciales a la URL que Hibernate usa para mostrar la información de la conexión.
@@ -90,26 +84,16 @@
 - **Verificación:** después de reconstruir y recrear el contenedor, `/api/facturas` volvió a responder HTTP 200 y los nuevos logs ya no contienen `password=`.
 - **Acción pendiente:** rotar la clave que haya aparecido en logs anteriores, coordinando el cambio del usuario en MariaDB y de los cinco `.env` de las APIs. No basta con editar solo los `.env` si el volumen de la DB ya está inicializado.
 
-
-## E14 — Marcadores de conflicto incluidos en `main` en la API de pagos
+## E13 — Marcadores de conflicto incluidos en `main` en la API de pagos
 
 - **Hallazgo:** después de actualizar `main`, `api-pagos/src/db.js` contenía `<<<<<<< HEAD`, `=======` y `>>>>>>> lu` dentro de la configuración de MariaDB. Además, una de las alternativas llamaba a `requiredEnv`, que ya no existía en el archivo.
 - **Causa:** el conflicto de un merge quedó incorporado como texto en el código. La imagen podría construirse porque Docker no interpreta JavaScript durante el build, pero la API fallaría al iniciar.
 - **Corrección:** se conservó la variante que exige `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`, coherente con el cambio de seguridad del equipo; se eliminaron los marcadores y la variante anterior.
-- **Verificación:** `node --check api-pagos/src/db.js` pasó y la búsqueda de marcadores de conflicto no encontró otros archivos. Falta comprobar el arranque de la imagen reconstruida y el endpoint `/api/pagos` antes del despliegue en AWS.
+- **Verificación:** `node --check api-pagos/src/db.js` pasó y la búsqueda de marcadores de conflicto no encontró otros archivos. La imagen `1.0.2` arrancó en EC2 y `/api/pagos` respondió HTTP 200 en el despliegue de prueba.
 
-## E15 — Web2 no podía leer su configuración en EC2
+## E14 — Web2 no podía leer su configuración en EC2
 
 - **Síntoma observado por el grupo:** Web2 necesitó un ajuste de permisos para funcionar en la nueva prueba de AWS.
 - **Causa:** `transferir.sh` y `transferir.ps1` dejaban `web2/config.yaml` con modo `600`, propiedad de `ec2-user`; la imagen de Web2 ahora ejecuta Nginx y su `entrypoint.sh` como el usuario `app` (UID 10001). El montaje `:ro` evita escrituras, pero no concede lectura.
 - **Corrección:** `deploy.sh` aplica `chmod 644` antes de levantar el stack. Los dos scripts de transferencia también separan `config.yaml` de los `.env`: el YAML queda en `644`, mientras que las credenciales y `.deploy-public-ip` permanecen en `600`.
-- **Verificación pendiente:** ejecutar de nuevo el flujo `transferir` → `deploy` en una EC2 limpia y comprobar que Web2 inicia y `/monitor/` responde sin ajustes manuales de permisos.
-
-## Riesgos pendientes de la primera prueba en AWS
-
-
-- El flujo nuevo de dos comandos (`transferir` local y `deploy.sh` remoto) valida archivos y detiene la ejecución ante errores de `ssh`/`scp`. Todavía falta probarlo completo en una EC2 recién creada; la prueba exitosa de AWS fue con la versión anterior de los scripts.
-- `deploy.sh` ahora comprueba el plugin Compose independientemente de Docker y lo instala si falta. Este caso particular todavía no se probó en una EC2 que ya tuviera Docker sin Compose.
-- `web2` ahora escucha en `8081` **solo dentro de `app_net`**. La imagen base de Nginx aún declara `EXPOSE 80` como metadato heredado, pero el proceso no escucha allí y Compose no publica ese puerto.
-- Los límites de memoria de los ocho servicios suman `2880M`, además de lo que necesita el sistema operativo. Una EC2 de 2 GB podría quedarse sin memoria; el tamaño de instancia y el consumo real deben comprobarse en el Sandbox.
-- El escaneo de Docker Scout del 12/10/2026 sobre las imágenes locales `1.0.2` encontró hallazgos altos/críticos residuales en las bases de MariaDB, Pagos y las dos webs. Cuatro imágenes (Clientes, Facturas, Transacciones y Tarjetas) no tenían hallazgos de esas severidades. En MariaDB, Scout sigue contando el `gosu` antiguo presente en una capa de la imagen oficial aun cuando el binario ejecutado fue sustituido por `gosu 1.19` compilado con Go 1.26.9; también señala SQLite de la base UBI9 sin parche disponible. Esto no autoriza a afirmar que la imagen esté libre de vulnerabilidades. La DB no se publica al host, pero deben seguirse las actualizaciones de MariaDB/UBI antes de una entrega o despliegue real.
+- **Verificación:** en la nueva prueba de EC2, el flujo `transferir` → `deploy` dejó Web2 en ejecución y `/monitor/` respondió HTTP 200 sin ajustes manuales.
